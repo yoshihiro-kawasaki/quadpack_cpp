@@ -1315,6 +1315,379 @@ void dqagse(QUADPACK_CPP_FUNCTION f,
     return;
 }
 
+void dqawc(QUADPACK_CPP_FUNCTION f,
+           const double a,
+           const double b,
+           const double c,
+           const double epsabs,
+           const double epsrel,
+           double &result,
+           double &abserr,
+           int &neval,
+           int &ier,
+           const int limit,
+           const int lenw,
+           int &last,
+           int *iwork,
+           double *work,
+           void *data)
+{
+    int lvl, l1, l2, l3;
+    // first executable statement  dqawc
+    ier    = 6;
+    neval  = 0;
+    last   = 0;
+    result = 0.0;
+    abserr = 0.0;
+    if(limit < 1 || lenw < limit*4) goto label_10;
+    //
+    // prepare call for dqawce.
+    //
+    l1 = limit + 1;
+    l2 = limit + l1;
+    l3 = limit + l2;
+    dqawce(f, a, b, c, epsabs, epsrel, limit, result, abserr, neval, ier,
+        &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), iwork, last, data);
+    //
+    // call error handler if necessary.
+    //
+    lvl = 0;
+    label_10:
+    if (ier == 6) ier = 1;
+    if (ier != 0) {
+        std::string messg = "abnormal return from dqawc";
+        xerror(messg, ier, lvl);
+    }
+    return;
+}
+
+void dqawce(QUADPACK_CPP_FUNCTION f,
+            const double a,
+            const double b,
+            const double c,
+            const double epsabs,
+            const double epsrel,
+            const int limit,
+            double &result,
+            double &abserr,
+            int &neval,
+            int &ier,
+            double *alist,
+            double *blist,
+            double *rlist,
+            double *elist,
+            int *iord,
+            int &last,
+            void *data)
+{
+    double aa, bb, epmach, uflow;
+    int iroff1, iroff2, k, krule, nev, nrmax;
+    double area1, a1, b1, error1;
+    double area2, a2, b2, error2;
+    double area12;
+    double erro12;
+    double errmax;
+    double area;
+    double errsum;
+    double errbnd;
+    int maxerr;
+    // first executable statement  dqawce
+    epmach = ARRAYF(d1mach, 4);
+    uflow  = ARRAYF(d1mach, 1);
+    //
+    //
+    // test on validity of parameters
+    // ------------------------------
+    //
+    ier = 6;
+    neval = 0;
+    last = 0;
+    ARRAYF(alist, 1) = a;
+    ARRAYF(blist, 1) = b;
+    ARRAYF(rlist, 1) = 0.0;
+    ARRAYF(elist, 1) = 0.0;
+    ARRAYF(iord,  1) = 0;
+    result = 0.0;
+    abserr = 0.0;
+    if(c == a || c== b || (epsabs <= 0.0 && epsrel < std::max(50.0*epmach, 5.0e-29))) goto label_999;
+    //
+    // first approximation to the integral
+    // -----------------------------------
+    //
+    aa = a;
+    bb = b;
+    if (a <= b) goto label_10;
+    aa = b;
+    bb = a;
+    label_10:
+    ier = 0;
+    krule = 1;
+    dqc25c(f, aa, bb, c, result, abserr, krule, neval, data);
+    last = 1;
+    ARRAYF(rlist, 1) = result;
+    ARRAYF(elist, 1) = abserr;
+    ARRAYF(iord,  1) = 1;
+    ARRAYF(alist, 1) = a;
+    ARRAYF(blist, 1) = b;
+    //
+    // test on accuracy
+    //
+    errbnd = std::max(epsabs, epsrel*std::abs(result));
+    if(limit == 1) ier = 1;
+    if(abserr < std::min(1.0e-2*std::abs(result), errbnd) || ier == 1) goto label_70;
+    //
+    // initialization
+    // --------------
+    //
+    ARRAYF(alist, 1) = aa;
+    ARRAYF(blist, 1) = bb;
+    ARRAYF(rlist, 1) = result;
+    errmax = abserr;
+    maxerr = 1;
+    area = result;
+    errsum = abserr;
+    nrmax = 1;
+    iroff1 = 0;
+    iroff2 = 0;
+    //
+    // main for-loop
+    // ------------
+    //
+    for (last = 2; last <= limit; ++last) {
+        //
+        // bisect the subinterval with nrmax-th largest
+        // error estimate.
+        //
+        a1 = ARRAYF(alist, maxerr);
+        b1 = 0.5 * (ARRAYF(alist, maxerr) + ARRAYF(blist, maxerr));
+        b2 = ARRAYF(blist, maxerr);
+        if (c <= b1 && c > a1) b1 = 0.5 * (c + b2);
+        if (c > b1  && c < b2) b1 = 0.5 * (a1 + c);
+        a2 = b1;
+        krule = 2;
+        dqc25c(f, a1, b1, c, area1, error1, krule, nev, data);
+        neval = neval + nev;
+        dqc25c(f, a2, b2, c, area2, error2, krule, nev, data);
+        neval = neval + nev;
+        //
+        // improve previous approximations to integral
+        // and error and test for accuracy.
+        //
+        area12 = area1 + area2;
+        erro12 = error1 + error2;
+        errsum = errsum + erro12 - errmax;
+        area   = area + area12 - ARRAYF(rlist, maxerr);
+        if (std::abs(ARRAYF(rlist, maxerr) - area12) < 1.0e-5*std::abs(area12) 
+           && erro12 >= 0.99*errmax && krule == 0) iroff1 = iroff1 + 1;
+        if (last > 10 && erro12 > errmax && krule == 0) iroff2 = iroff2 + 1;
+        ARRAYF(rlist, maxerr) = area1;
+        ARRAYF(rlist, last)   = area2;
+        errbnd = std::max(epsabs, epsrel*std::abs(area));
+        if (errsum <= errbnd) goto label_15;
+        //
+        // test for roundoff error and eventually set error flag.
+        //
+        if (iroff1 >= 6 && iroff2 > 20) ier = 2;
+        //
+        // set error flag in the case of bad integrand behaviour
+        // at a point of the integration range.
+        //
+        if (std::max(std::abs(a1), std::abs(b2)) <= (1.0 + 1.0e2*epmach)*(std::abs(a2) + 1.0e3*uflow)) ier = 3;
+        //
+        // append the newly-created intervals to the list.
+        //
+        label_15:
+        if(error2 > error1) goto label_20;
+        ARRAYF(alist, last)   = a2;
+        ARRAYF(blist, maxerr) = b1;
+        ARRAYF(blist, last)   = b2;
+        ARRAYF(elist, maxerr) = error1;
+        ARRAYF(elist, last)   = error2;
+        goto label_30;
+        label_20:
+        ARRAYF(alist, maxerr) = a2;
+        ARRAYF(alist, last)   = a1;
+        ARRAYF(blist, last)   = b1;
+        ARRAYF(rlist, maxerr) = area2;
+        ARRAYF(rlist, last)   = area1;
+        ARRAYF(elist, maxerr) = error2;
+        ARRAYF(elist, last)   = error1;
+        //
+        // call subroutine dqpsrt to maintain the descending ordering
+        // in the list of error estimates and select the subinterval
+        // with nrmax-th largest error estimate (to be bisected next).
+        //
+        label_30:
+        dqpsrt(limit, last, maxerr, errmax, elist, iord, nrmax);
+        // jump out of for-loop
+        if(ier != 0 || errsum <= errbnd) goto label_50;
+    }
+    //
+    // compute final result.
+    // ---------------------
+    //
+    label_50:
+    result = 0.0;
+    for (k = 1; k <= last; ++k) {
+        result += ARRAYF(rlist, k);
+    }
+    abserr = errsum;
+    label_70:
+    if (aa == b) result = -result;
+    label_999:
+    return;
+}
+
+void dqc25c(QUADPACK_CPP_FUNCTION f,
+            const double a,
+            const double b,
+            const double c,
+            double &result,
+            double &abserr,
+            int &krul,
+            int &neval,
+            void *data)
+{
+
+}
+
+void dqcheb(const double *x,
+            double *fval,
+            double *cheb12,
+            double *cheb24)
+{
+
+}
+
+void dqelg(int &n,
+           double *epstab,
+           double &result,
+           double &abserr,
+           double *res3la,
+           int &nres)
+{
+    double delta1, delta2, delta3, epsinf,
+           err1, err2, err3, e0, e1, e1abs,
+           e2, e3, res, ss, tol1, tol2, tol3;
+    double epmach, oflow;
+    int i, ib, ib2, ie, indx, k1, k2, k3, num;
+    int newelm;
+    double error;
+
+    // first executable statement  dqelg
+    epmach = ARRAYF(d1mach, 4);
+    oflow  = ARRAYF(d1mach, 2);
+    nres  += 1;
+    abserr = oflow;
+    result = ARRAYF(epstab, n);
+    if(n < 3) goto label_100;
+    // limexp = 50
+    ARRAYF(epstab, n+2) = ARRAYF(epstab, n);
+    newelm = (n - 1)/2;
+    ARRAYF(epstab, n) = oflow;
+    num    = n;
+    k1     = n;
+    for (i = 1; i <= newelm; ++i) {
+        k2     = k1 - 1;
+        k3     = k1 - 2;
+        res    = ARRAYF(epstab, k1+2);
+        e0     = ARRAYF(epstab, k3);
+        e1     = ARRAYF(epstab, k2);
+        e2     = res;
+        e1abs  = std::abs(e1);
+        delta2 = e2 - e1;
+        err2   = std::abs(delta2);
+        tol2   = std::max(std::abs(e2), e1abs)*epmach;
+        delta3 = e1 - e0;
+        err3   = std::abs(delta3);
+        tol3   = std::max(e1abs, std::abs(e0))*epmach;
+        if (err2 > tol2 || err3 > tol3) goto label_10;
+        //
+        // if e0, e1 and e2 are equal to within machine
+        // accuracy, convergence is assumed.
+        // result = e2
+        // abserr = abs(e1-e0)+abs(e2-e1)
+        //
+        result = res;
+        abserr = err2 + err3;
+        // jump out of for-loop
+        goto label_100;
+        label_10:
+        e3           = ARRAYF(epstab, k1);
+        ARRAYF(epstab, k1) = e1;
+        delta1       = e1 - e3;
+        err1         = std::abs(delta1);
+        tol1         = std::max(e1abs, std::abs(e3))*epmach;
+        //
+        // if two elements are very close to each other, omit
+        // a part of the table by adjusting the value of n
+        //
+        if (err1 <= tol1 || err2 <= tol2 || err3 <= tol3) goto label_20;
+        ss = 1.0/delta1 +1.0/delta2 - 1.0/delta3;
+        epsinf = std::abs(ss*e1);
+        //
+        // test to detect irregular behaviour in the table, and
+        // eventually omit a part of the table adjusting the value
+        // of n.
+        // 
+        if (epsinf > 1.0e-4) goto label_30;
+        label_20:
+        n = i + i - 1;
+        // jump out of for-loop
+        goto label_50;
+        //
+        // compute a new element and eventually adjust
+        // the value of result.
+        //
+        label_30:
+        res          = e1 + 1.0/ss;
+        ARRAYF(epstab, k1) = res;
+        k1           = k1 - 2;
+        error        = err2 + std::abs(res - e2) + err3;
+        if (error > abserr) continue; // goto label_40;
+        abserr = error;
+        result = res;
+        // label_40:
+        // continue;
+    }
+    //
+    // shift the table.
+    //
+    label_50:
+    if (n == limexp) n = 2*(limexp/2) - 1;
+    ib = 1;
+    if ((num/2)*2 == num) ib = 2;
+    ie = newelm + 1;
+    for (i = 1; i <= ie; ++i) {
+        ib2 = ib + 2;
+        ARRAYF(epstab, ib) = ARRAYF(epstab, ib2);
+        ib = ib2;
+    }
+    if(num == n) goto label_80;
+    indx = num - n + 1;
+    for (i = 1; i <= n; ++i) {
+        ARRAYF(epstab, i) = ARRAYF(epstab, indx);
+        indx += 1;
+    }
+    label_80:
+    if(nres >= 4) goto label_90;
+    ARRAYF(res3la, nres) = result;
+    abserr = oflow;
+    goto label_100;
+    //
+    // compute error estimate
+    // 
+    label_90:
+    abserr = std::abs(result - ARRAYF(res3la, 3)) + std::abs(result - ARRAYF(res3la, 2)) + std::abs(result - ARRAYF(res3la, 1));
+    ARRAYF(res3la, 1) = ARRAYF(res3la, 2);
+    ARRAYF(res3la, 2) = ARRAYF(res3la, 3);
+    ARRAYF(res3la, 3) = result;
+    label_100:
+    abserr = std::max(abserr, 5.0*epmach*std::abs(result));
+    return;
+}
+
+
 void dqk15(QUADPACK_CPP_FUNCTION f,
            const double a,
            const double b,
@@ -1554,6 +1927,23 @@ void dqk15i(QUADPACK_CPP_FUNCTION f,
     if (resasc != 0.0 && abserr != 0.0) abserr = resasc * std::min(1.0, std::pow(2.0e2*abserr/resasc, 1.5));
     if (resabs > uflow/(50.0*epmach)) abserr = std::max((epmach*50.0)*resabs, abserr);
     return;
+}
+
+void dqk15w(QUADPACK_CPP_FUNCTION f,
+            QUADPACK_CPP_WEIGHT_FUNCTION w,
+            const double p1,
+            const double p2,
+            const double p3,
+            const double p4,
+            const int kp,
+            const double a,
+            const double b,
+            double &result,
+            double &abserr,
+            double &resabs,
+            double &resasc)
+{
+
 }
 
 void dqk21(QUADPACK_CPP_FUNCTION f,
@@ -2307,133 +2697,8 @@ void dqk61(QUADPACK_CPP_FUNCTION f,
     return;
 }
 
-void dqelg(int &n,
-           double *epstab,
-           double &result,
-           double &abserr,
-           double *res3la,
-           int &nres)
-{
-    double delta1, delta2, delta3, epsinf,
-           err1, err2, err3, e0, e1, e1abs,
-           e2, e3, res, ss, tol1, tol2, tol3;
-    double epmach, oflow;
-    int i, ib, ib2, ie, indx, k1, k2, k3, num;
-    int newelm;
-    double error;
 
-    // first executable statement  dqelg
-    epmach = ARRAYF(d1mach, 4);
-    oflow  = ARRAYF(d1mach, 2);
-    nres  += 1;
-    abserr = oflow;
-    result = ARRAYF(epstab, n);
-    if(n < 3) goto label_100;
-    // limexp = 50
-    ARRAYF(epstab, n+2) = ARRAYF(epstab, n);
-    newelm = (n - 1)/2;
-    ARRAYF(epstab, n) = oflow;
-    num    = n;
-    k1     = n;
-    for (i = 1; i <= newelm; ++i) {
-        k2     = k1 - 1;
-        k3     = k1 - 2;
-        res    = ARRAYF(epstab, k1+2);
-        e0     = ARRAYF(epstab, k3);
-        e1     = ARRAYF(epstab, k2);
-        e2     = res;
-        e1abs  = std::abs(e1);
-        delta2 = e2 - e1;
-        err2   = std::abs(delta2);
-        tol2   = std::max(std::abs(e2), e1abs)*epmach;
-        delta3 = e1 - e0;
-        err3   = std::abs(delta3);
-        tol3   = std::max(e1abs, std::abs(e0))*epmach;
-        if (err2 > tol2 || err3 > tol3) goto label_10;
-        //
-        // if e0, e1 and e2 are equal to within machine
-        // accuracy, convergence is assumed.
-        // result = e2
-        // abserr = abs(e1-e0)+abs(e2-e1)
-        //
-        result = res;
-        abserr = err2 + err3;
-        // jump out of for-loop
-        goto label_100;
-        label_10:
-        e3           = ARRAYF(epstab, k1);
-        ARRAYF(epstab, k1) = e1;
-        delta1       = e1 - e3;
-        err1         = std::abs(delta1);
-        tol1         = std::max(e1abs, std::abs(e3))*epmach;
-        //
-        // if two elements are very close to each other, omit
-        // a part of the table by adjusting the value of n
-        //
-        if (err1 <= tol1 || err2 <= tol2 || err3 <= tol3) goto label_20;
-        ss = 1.0/delta1 +1.0/delta2 - 1.0/delta3;
-        epsinf = std::abs(ss*e1);
-        //
-        // test to detect irregular behaviour in the table, and
-        // eventually omit a part of the table adjusting the value
-        // of n.
-        // 
-        if (epsinf > 1.0e-4) goto label_30;
-        label_20:
-        n = i + i - 1;
-        // jump out of for-loop
-        goto label_50;
-        //
-        // compute a new element and eventually adjust
-        // the value of result.
-        //
-        label_30:
-        res          = e1 + 1.0/ss;
-        ARRAYF(epstab, k1) = res;
-        k1           = k1 - 2;
-        error        = err2 + std::abs(res - e2) + err3;
-        if (error > abserr) continue; // goto label_40;
-        abserr = error;
-        result = res;
-        // label_40:
-        // continue;
-    }
-    //
-    // shift the table.
-    //
-    label_50:
-    if (n == limexp) n = 2*(limexp/2) - 1;
-    ib = 1;
-    if ((num/2)*2 == num) ib = 2;
-    ie = newelm + 1;
-    for (i = 1; i <= ie; ++i) {
-        ib2 = ib + 2;
-        ARRAYF(epstab, ib) = ARRAYF(epstab, ib2);
-        ib = ib2;
-    }
-    if(num == n) goto label_80;
-    indx = num - n + 1;
-    for (i = 1; i <= n; ++i) {
-        ARRAYF(epstab, i) = ARRAYF(epstab, indx);
-        indx += 1;
-    }
-    label_80:
-    if(nres >= 4) goto label_90;
-    ARRAYF(res3la, nres) = result;
-    abserr = oflow;
-    goto label_100;
-    //
-    // compute error estimate
-    // 
-    label_90:
-    abserr = std::abs(result - ARRAYF(res3la, 3)) + std::abs(result - ARRAYF(res3la, 2)) + std::abs(result - ARRAYF(res3la, 1));
-    ARRAYF(res3la, 1) = ARRAYF(res3la, 2);
-    ARRAYF(res3la, 2) = ARRAYF(res3la, 3);
-    ARRAYF(res3la, 3) = result;
-    label_100:
-    abserr = std::max(abserr, 5.0*epmach*std::abs(result));
-    return;
-}
+
 
 void dqpsrt(const int limit,
             const int last,
@@ -2523,7 +2788,19 @@ void dqpsrt(const int limit,
     return;
 }
 
-void xerror(const std::string messg, const int nerr, const int level)
+double dqwgtc(const double x,
+              const double c,
+              const double p2,
+              const double p3,
+              const double p4,
+              const int kp)
+{
+    return 1.0 / (x - c);
+}
+
+void xerror(const std::string messg, 
+            const int nerr, 
+            const int level)
 {
     std::cerr << nerr << " " << messg << std::endl;
     if (level == 2) std::exit(1);

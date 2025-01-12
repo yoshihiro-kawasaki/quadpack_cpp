@@ -17,6 +17,7 @@ void test_dqag();
 void test_dqagi();
 void test_dqagp();
 void test_dqags();
+void test_dqawc();
 
 // *********************************************** //
 // main
@@ -28,6 +29,7 @@ int main()
     test_dqagi();
     test_dqagp();
     test_dqags();
+    test_dqawc();
     return 0;
 }
 
@@ -41,17 +43,17 @@ void check_result(std::string routine, const double result, const double answer,
     std::cout << std::scientific;
     if (relerr < EPSREL) {
         std::cout << std::setw(10) << routine << " "
-                  << result << " "
-                  << answer << " "
-                  << relerr << " "
-                  << neval  << std::endl;
+                  << std::setw(15) << result << " "
+                  << std::setw(15) << answer << " "
+                  << std::setw(15) << relerr << " "
+                  << std::setw(8)  << neval  << std::endl;
                   
     } else {
         std::cout << std::setw(10) << routine << " "
-                  << result << " "
-                  << answer << " "
-                  << relerr << " "
-                  << neval  << " "
+                  << std::setw(15) << result << " "
+                  << std::setw(15) << answer << " "
+                  << std::setw(15) << relerr << " "
+                  << std::setw(8)  << neval  << " "
                   << "failed" << std::endl;
     }
 }
@@ -211,6 +213,38 @@ void test_dqags()
         ier, limit, lenw, last, iwork, work, &f);
 
     check_result("dqags", result, answer, neval);
+
+    return;
+}
+
+// *********************************************** //
+// test_dqawc
+// *********************************************** //
+
+double func_dqawc(double x, void *data)
+{
+    return 1.0 /(x*x + 1.0e-4);
+}
+
+void test_dqawc()
+{
+    const double a = -1.0;
+    const double b =  1.0;
+    const double c =  0.5;
+    const int limit = 200;
+    const int lenw  = limit*4;
+    const double answer = -628.461728506562366229080921522473;
+
+    const double epsabs = EPSABS;
+    const double epsrel = EPSREL;
+
+    double abserr, result, work[lenw];
+    int ier, iwork[limit], last, neval;
+
+    quadpack_cpp::dqawc(func_dqawc, a, b, c, epsabs, epsrel, result, abserr, neval,
+        ier, limit, lenw, last, iwork, work, nullptr);
+
+    check_result("dqawc", result, answer, neval);
 
     return;
 }

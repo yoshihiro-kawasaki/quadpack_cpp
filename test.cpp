@@ -18,6 +18,9 @@ void test_dqagi();
 void test_dqagp();
 void test_dqags();
 void test_dqawc();
+void test_dqawf();
+void test_dqawo();
+void test_dqaws();
 
 // *********************************************** //
 // main
@@ -25,11 +28,14 @@ void test_dqawc();
 
 int main()
 {
-    test_dqag();
-    test_dqagi();
-    test_dqagp();
-    test_dqags();
-    test_dqawc();
+    // test_dqag();
+    // test_dqagi();
+    // test_dqagp();
+    // test_dqags();
+    // test_dqawc();
+    test_dqawf();
+    test_dqawo();
+    test_dqaws();
     return 0;
 }
 
@@ -39,7 +45,8 @@ int main()
 
 void check_result(std::string routine, const double result, const double answer, const int neval)
 {
-    double relerr = std::abs((result - answer)/answer);
+    // double relerr = std::abs((result - answer)/answer);
+    double relerr = std::abs(result - answer);
     std::cout << std::scientific;
     if (relerr < EPSREL) {
         std::cout << std::setw(10) << routine << " "
@@ -245,6 +252,118 @@ void test_dqawc()
         ier, limit, lenw, last, iwork, work, nullptr);
 
     check_result("dqawc", result, answer, neval);
+
+    return;
+}
+
+// *********************************************** //
+// test_dqawf
+// *********************************************** //
+
+double func_dqawf(double x, void *data)
+{
+    if (x > 0.0) {
+        return std::sin(50.0*x)/(x*std::sqrt(x));
+    } else {
+        return 0.0;
+    }
+}
+
+void test_dqawf()
+{
+    const double a      = 0.0;
+    const double omega  = 8.0;
+    const int integr    = 2;
+    const int limlst    = 100;
+    const int limit     = 500;
+    const int leniw     = limit*2 + limlst;
+    const int maxp1     = 100;
+    const int lenw      = leniw*2 + maxp1*25;
+    const double answer = std::sqrt(29.0*M_PI) - std::sqrt(21.0*M_PI);
+
+    const double epsabs = EPSABS;
+    const double epsrel = EPSREL;
+
+    double abserr, result, work[lenw];
+    int ier, iwork[leniw], last, lst, neval;
+
+    quadpack_cpp::dqawf(func_dqawf, a, omega, integr, epsrel, result, abserr, neval,
+                   ier, limlst, lst, leniw, maxp1, lenw, iwork, work, nullptr);
+
+    check_result("dqawf", result, answer, neval);
+
+    return;
+}
+
+// *********************************************** //
+// test_dqawo
+// *********************************************** //
+
+double func_dqawo(double x, void *data)
+{
+    if (x > 0.0) {
+        return std::exp(-x)*std::log(x);
+    } else {
+        return 0.0;
+    }
+}
+
+void test_dqawo()
+{
+    const double a      = 0.0;
+    const double b      = 1.0;
+    const double omega  = 10.0;
+    const int integr    = 1;
+    const int limit     = 100;
+    const int leniw     = limit*2;
+    const int maxp1     = 21;
+    const int lenw      = limit*4 + maxp1*25;
+    const double answer = -0.177639206511388980501003222731069;
+
+    const double epsabs = EPSABS;
+    const double epsrel = EPSREL;
+
+    double abserr, result, work[lenw];
+    int ier, iwork[leniw], last, neval;
+
+    quadpack_cpp::dqawo(func_dqawo, a, b, omega, integr, epsabs, epsrel, result, abserr,
+                   neval, ier, leniw, maxp1, lenw, last, iwork, work, nullptr);
+
+    check_result("dqawo", result, answer, neval);
+
+    return;
+}
+
+// *********************************************** //
+// test_dqaws
+// *********************************************** //
+
+double func_dqaws(double x, void *data)
+{
+    return std::sin(10.0*x);
+}
+
+void test_dqaws()
+{
+    const double a = 0.0;
+    const double b = 1.0;
+    const double alfa = -0.5;
+    const double beta = -0.5;
+    const int integr = 1;
+    const int limit  = 100;
+    const int lenw   = limit*4;
+    const double answer = 0.535019056922365344126359;
+
+    const double epsabs = EPSABS;
+    const double epsrel = EPSREL;
+
+    double abserr, result, work[lenw];
+    int ier, iwork[limit], last, neval;
+
+    quadpack_cpp::dqaws(func_dqaws, a, b, alfa, beta, integr, epsabs, epsrel, result,
+        abserr, neval, ier, limit, lenw, last, iwork, work, nullptr);
+
+    check_result("dqaws", result, answer, neval);
 
     return;
 }

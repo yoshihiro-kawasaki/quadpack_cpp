@@ -3,6 +3,11 @@
 namespace quadpack_cpp
 {
 
+// C++ array index --> Fortran array index
+#define ARRAYF(a, i)         (a[(i)-1])
+// C++ array index --> Fortran 2d-array index
+#define MATF(a, cols,  i, j) (a[((i) - 1) * (cols) + ((j) - 1)])
+
 namespace {
     const double d1mach[] = {
         std::numeric_limits<double>::min(),
@@ -14,10 +19,84 @@ namespace {
     const int limexp = 50;
 }
 
-// C++ array index --> Fortran array index
-#define ARRAYF(a, i)         (a[(i)-1])
-// C++ array index --> Fortran 2d-array index
-#define MATF(a, rows,  i, j) (a[((i) - 1) * (rows) + ((j) - 1)]) 
+
+void dgtsl(const int n, 
+           double *c,
+           double *d,
+           double *e,
+           double *b,
+           int &info)
+{
+    int k, kb, kp1, nm1, nm2;
+    double t;
+
+    info = 0;
+    ARRAYF(c, 1) = ARRAYF(d, 1);
+    nm1  = n - 1;
+    if (nm1 < 1) goto label_40;
+    ARRAYF(d, 1) = ARRAYF(e, 1);
+    ARRAYF(e, 1) = 0.0;
+    ARRAYF(e, n) = 0.0;
+    //
+    for (k = 1; k <= nm1; ++k) {
+        kp1 = k + 1;
+        //
+        // find the largest of the two rows
+        //
+        if (std::abs(ARRAYF(c, kp1)) < std::abs(ARRAYF(c, k))) goto label_10;
+        //
+        // interchange row
+        //
+        t              = ARRAYF(c, kp1);
+        ARRAYF(c, kp1) = ARRAYF(c,   k);
+        ARRAYF(c,   k) = t;
+        t              = ARRAYF(d, kp1);
+        ARRAYF(d, kp1) = ARRAYF(d,   k);
+        ARRAYF(d,   k) = t;
+        t              = ARRAYF(e, kp1);
+        ARRAYF(e, kp1) = ARRAYF(e,   k);
+        ARRAYF(e,   k) = t;
+        t              = ARRAYF(b, kp1);
+        ARRAYF(b, kp1) = ARRAYF(b,   k);
+        ARRAYF(b,   k) = t;
+        label_10:
+        //
+        // zero elements
+        //
+        if (ARRAYF(c, k) != 0.0) goto label_20;
+        info = k;
+        // ............exit
+        goto label_100;
+        label_20:
+        t              = -ARRAYF(c, kp1) / ARRAYF(c, k);
+        ARRAYF(c, kp1) =  ARRAYF(d, kp1) + t*ARRAYF(d, k);
+        ARRAYF(d, kp1) =  ARRAYF(e, kp1) + t*ARRAYF(e, k);
+        ARRAYF(e, kp1) =  0.0;
+        ARRAYF(b, kp1) =  ARRAYF(b, kp1) + t*ARRAYF(b, k);
+    }
+    label_40:
+    if (ARRAYF(c, n) != 0.0) goto label_50;
+    info = n;
+    goto label_90;
+    label_50:
+    //
+    // back solve
+    //
+    nm2          = n - 2;
+    ARRAYF(b, n) = ARRAYF(b, n) / ARRAYF(c, n);
+    if (n == 1) goto label_80;
+    ARRAYF(b, nm1) = (ARRAYF(b, nm1) - ARRAYF(d, nm1)*ARRAYF(b, n)) / ARRAYF(c, nm1);
+    if (nm2 < 1) goto label_70;
+    for (kb = 1; kb <= nm2; ++kb) {
+        k            = nm2 - kb + 1;
+        ARRAYF(b, k) = (ARRAYF(b, k) - ARRAYF(d, k)*ARRAYF(b, k+1) - ARRAYF(e, k)*ARRAYF(b, k+2)) / ARRAYF(c, k);
+    }
+    label_70:
+    label_80:
+    label_90:
+    label_100:
+    return;
+}
 
 void dqag(QUADPACK_CPP_FUNCTION f, 
           const double a, 
@@ -1647,8 +1726,8 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
     //
     if(integr == 1) dqagie(f, 0.0, 1, epsabs, 0.0,limit, result, abserr, neval, ier,
                         alist, blist, rlist, elist, iord, last, data);
-    ARRAYF(rslst, 1)  = result;
-    ARRAYF(erlst, 1)  = abserr;
+    ARRAYF(rslst,  1) = result;
+    ARRAYF(erlst,  1) = abserr;
     ARRAYF(ierlst, 1) = ier;
     lst = 1;
     goto label_999;
@@ -1657,22 +1736,22 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
     // ---------------
     //
     label_10:
-    l = std::abs(omega);
-    dl = 2*l + 1;
-    cycle = dl*M_PI/std::abs(omega);
-    ier = 0;
-    ktmin = 0;
-    neval = 0;
+    l      = std::abs(omega);
+    dl     = 2*l + 1;
+    cycle  = dl*M_PI/std::abs(omega);
+    ier    = 0;
+    ktmin  = 0;
+    neval  = 0;
     numrl2 = 0;
-    nres = 0;
-    c1 = a;
-    c2 = cycle + a;
-    p1 = 1.0 - p;
-    uflow = ARRAYF(d1mach, 1);
-    eps = epsabs;
+    nres   = 0;
+    c1     = a;
+    c2     = cycle + a;
+    p1     = 1.0 - p;
+    uflow  = ARRAYF(d1mach, 1);
+    eps    = epsabs;
     if(epsabs > uflow/p1) eps = epsabs*p1;
-    ep = eps;
-    fact = 1.0;
+    ep     = eps;
+    fact   = 1.0;
     correc = 0.0;
     abserr = 0.0;
     errsum = 0.0;
@@ -1684,15 +1763,15 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
         //
         // integrate over current subinterval.
         //
-        dla = lst;
+        dla  = lst;
         epsa = eps*fact;
         dqawoe(f, c1, c2, omega, integr, epsa, 0.0, limit, lst, maxp1,
             ARRAYF(rslst, lst), ARRAYF(erlst, lst), nev, ARRAYF(ierlst, lst), 
             last, alist, blist, rlist, elist, iord, nnlog, momcom, chebmo, data);
-        neval = neval + nev;
-        fact = fact*p;
-        errsum = errsum + ARRAYF(erlst, lst);
-        drl = 50.0*std::abs(ARRAYF(rslst, lst));
+        neval  += nev;
+        fact    = fact*p;
+        errsum += ARRAYF(erlst, lst);
+        drl     = 50.0*std::abs(ARRAYF(rslst, lst));
         //
         // test on accuracy with partial sum
         //
@@ -1701,7 +1780,7 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
         if (ARRAYF(ierlst, lst) != 0) eps = std::max(ep, correc*p1);
         if (ARRAYF(ierlst, lst) != 0) ier = 7;
         if (ier == 7 && errsum + drl <= correc*10.0 && lst > 5) goto label_80;
-        numrl2 = numrl2 + 1;
+        numrl2 += 1;
         if (lst > 1) goto label_20;
         ARRAYF(psum, 1) = ARRAYF(rslst, 1);
         goto label_40;
@@ -1719,12 +1798,12 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
         //
         // test whether extrapolated result is influenced by roundoff
         //
-        ktmin = ktmin + 1;
+        ktmin += 1;
         if (ktmin >= 15 && abserr <= 1.0e-3*(errsum + drl)) ier = 4;
         if (abseps > abserr && lst != 3) goto label_30;
         abserr = abseps;
         result = reseps;
-        ktmin = 0;
+        ktmin  = 0;
         //
         // if ier is not 0, check whether direct result (partial sum)
         // or extrapolated result yields the best integral
@@ -1758,6 +1837,58 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
     return;
 }
 
+
+void dqawo(QUADPACK_CPP_FUNCTION f,
+           const double a,
+           const double b,
+           const double omega,
+           const int integr,
+           const double epsabs,
+           const double epsrel,
+           double &result,
+           double &abserr,
+           int &neval,
+           int &ier,
+           const int leniw,
+           const int maxp1,
+           const int lenw,
+           int &last,
+           int *iwork,
+           double *work,
+           void *data)
+{
+    int limit, lvl, l1, l2, l3, l4, momcom;
+    // first executable statement  dqawo
+    ier    = 6;
+    neval  = 0;
+    last   = 0;
+    result = 0.0;
+    abserr = 0.0;
+    if (leniw < 2 || maxp1 < 1 || lenw < (leniw*2 + maxp1*25)) goto label_10;
+    //
+    // prepare call for dqawoe
+    //
+    limit = leniw / 2;
+    l1    = limit + 1;
+    l2    = limit + l1;
+    l3    = limit + l2;
+    l4    = limit + l3;
+    dqawoe(f, a, b, omega, integr, epsabs, epsrel, limit, 1 ,maxp1, result, abserr, neval, ier, last,
+        &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), 
+        &ARRAYF(iwork, 1),&ARRAYF(iwork, l1), momcom, &ARRAYF(work, l4), data);
+    //
+    // call error handler if necessary
+    //
+    lvl = 0;
+    label_10:
+    if (ier == 6) ier = 1;
+    if (ier != 0) {
+        std::string messg = "abnormal return from dqawo";
+        xerror(messg, ier, lvl);
+    }
+    return;
+}
+
 void dqawoe(QUADPACK_CPP_FUNCTION f,
             const double a,
             const double b,
@@ -1780,7 +1911,7 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
             int *iord,
             int *nnlog,
             int &momcom,
-            double *chebmo, // ** chebmo
+            double *chebmo,
             void * data)
 {
     double abseps, correc, defab1, defab2, defabs, domega, dres, ertest, resabs, reseps, res3la[3], width;
@@ -1810,11 +1941,11 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
     // test on validity of parameters
     // ------------------------------
     //
-    ier = 0;
-    neval = 0;
-    last = 0;
-    result = 0.0;
-    abserr = 0.0;
+    ier              = 0;
+    neval            = 0;
+    last             = 0;
+    result           = 0.0;
+    abserr           = 0.0;
     ARRAYF(alist, 1) = a;
     ARRAYF(blist, 1) = b;
     ARRAYF(rlist, 1) = 0.0;
@@ -1830,7 +1961,7 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
     // -----------------------------------
     //
     domega = std::abs(omega);
-    nrmom = 0;
+    nrmom  = 0;
     if (icall > 1) goto label_5;
     momcom = 0;
     label_5:
@@ -1839,8 +1970,8 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
     //
     // test on accuracy.
     //
-    dres = std::abs(result);
-    errbnd = std::max(epsabs, epsrel*dres);
+    dres             = std::abs(result);
+    errbnd           = std::max(epsabs, epsrel * dres);
     ARRAYF(rlist, 1) = result;
     ARRAYF(elist, 1) = abserr;
     ARRAYF(iord,  1) = 1;
@@ -1851,31 +1982,31 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
     // initializations
     // ---------------
     //
-    uflow = ARRAYF(d1mach, 1);
-    oflow = ARRAYF(d1mach, 2);
+    uflow  = ARRAYF(d1mach, 1);
+    oflow  = ARRAYF(d1mach, 2);
     errmax = abserr;
     maxerr = 1;
-    area = result;
+    area   = result;
     errsum = abserr;
     abserr = oflow;
-    nrmax = 1;
+    nrmax  = 1;
     extrap = false;
-    noext = false;
-    ierro = 0;
+    noext  = false;
+    ierro  = 0;
     iroff1 = 0;
     iroff2 = 0;
     iroff3 = 0;
-    ktmin = 0;
-    small = std::abs(b - a)*0.75;
-    nres = 0;
+    ktmin  = 0;
+    small  = std::abs(b - a)*0.75;
+    nres   = 0;
     numrl2 = 0;
     extall = false;
-    if (0.5*std::abs(b - a)*domega > 2.0) goto label_10;
+    if (0.5 * std::abs(b - a) * domega > 2.0) goto label_10;
     numrl2 = 1;
     extall = true;
     ARRAYF(rlist2, 1) = result;
     label_10:
-    if (0.25*std::abs(b - a)*domega <= 2.0) extall = true;
+    if (0.25 * std::abs(b - a) * domega <= 2.0) extall = true;
     ksgn = -1;
     if (dres >= (1.0 - 50.0*epmach)*defabs) ksgn = 1;
     //
@@ -1887,18 +2018,18 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
         // bisect the subinterval with the nrmax-th largest
         // error estimate.
         //
-        nrmom = ARRAYF(nnlog, maxerr) + 1;
-        a1 = ARRAYF(alist, maxerr);
-        b1 = 0.5 * (ARRAYF(alist, maxerr) + ARRAYF(blist, maxerr));
-        a2 = b1;
-        b2 = ARRAYF(blist, maxerr);
+        nrmom  = ARRAYF(nnlog, maxerr) + 1;
+        a1     = ARRAYF(alist, maxerr);
+        b1     = 0.5 * (ARRAYF(alist, maxerr) + ARRAYF(blist, maxerr));
+        a2     = b1;
+        b2     = ARRAYF(blist, maxerr);
         erlast = errmax;
-        dqc25f(f, a1, b1, domega, integr, nrmom, maxp1, 0, 
-            area1, error1, nev, resabs, defab1, momcom, chebmo, data);
-        neval = neval + nev;
-        dqc25f(f, a2, b2, domega, integr, nrmom, maxp1, 1,
-            area2, error2, nev, resabs, defab2, momcom, chebmo, data);
-        neval = neval + nev;
+        dqc25f(f, a1, b1, domega, integr, nrmom, maxp1, 0, area1, 
+            error1, nev, resabs, defab1, momcom, chebmo, data);
+        neval += nev;
+        dqc25f(f, a2, b2, domega, integr, nrmom, maxp1, 1, area2, 
+            error2, nev, resabs, defab2, momcom, chebmo, data);
+        neval += nev;
         //
         // improve previous approximations to integral
         // and error and test for accuracy.
@@ -1909,16 +2040,16 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
         area   = area + area12 - ARRAYF(rlist, maxerr);
         if (defab1 == error1 || defab2 == error2) goto label_25;
         if (std::abs(ARRAYF(rlist, maxerr) - area12) > 1.0e-5*std::abs(area12) || erro12 < 0.99*errmax) goto label_20;
-        if (extrap) iroff2 = iroff2 + 1;
-        if (!extrap) iroff1 = iroff1 + 1;
+        if (extrap)  iroff2 += 1;
+        if (!extrap) iroff1 += 1;
         label_20:
-        if (last > 10 && erro12 > errmax) iroff3 = iroff3 + 1;
+        if (last > 10 && erro12 > errmax) iroff3 += 1;
         label_25:
         ARRAYF(rlist, maxerr) = area1;
         ARRAYF(rlist,   last) = area2;
         ARRAYF(nnlog, maxerr) = nrmom;
         ARRAYF(nnlog,   last) = nrmom;
-        errbnd = std::max(epsabs, epsrel*std::abs(area));
+        errbnd                = std::max(epsabs, epsrel * std::abs(area));
         //
         // test for roundoff error and eventually set error flag.
         //
@@ -1965,8 +2096,8 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
         if (last == 2 && extall) goto label_120;
         if (noext) goto label_140;
         if (!extall) goto label_50;
-        erlarg = erlarg - erlast;
-        if (std::abs(b1 - a1) > small) erlarg = erlarg + erro12;
+        erlarg -= erlast;
+        if (std::abs(b1 - a1) > small) erlarg += erro12;
         if (extrap) goto label_70;
         //
         // test whether the interval to be bisected next is the
@@ -1981,13 +2112,13 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
         // (we do this if we integrate over the next interval with
         // use of a gauss-kronrod rule - see subroutine dqc25f).
         //
-        small = small*0.5;
+        small  = small*0.5;
         if (0.25*width*domega > 2.0) goto label_140;
         extall = true;
         goto label_130;
         label_60:
         extrap = true;
-        nrmax = 2;
+        nrmax  = 2;
         label_70:
         if (ierro == 3 || erlarg <= ertest) goto label_90;
         //
@@ -1997,29 +2128,29 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
         //
         jupbnd = last;
         if (last > (limit/2 + 2)) jupbnd = limit + 3 - last;
-        id = nrmax;
+        id     = nrmax;
         for (k = id; k <= jupbnd; ++k) {
             maxerr = ARRAYF(iord,   nrmax);
             errmax = ARRAYF(elist, maxerr);
             if (std::abs(ARRAYF(blist, maxerr) - ARRAYF(alist, maxerr)) > small) goto label_140;
-            nrmax = nrmax + 1;
+            nrmax += 1;
         }
         // 
         // perform extrapolation.
         //
         label_90:
-        numrl2 = numrl2 + 1;
+        numrl2 += 1;
         ARRAYF(rlist2, numrl2) = area;
         if (numrl2 < 3) goto label_110;
         dqelg(numrl2, rlist2, reseps, abseps, res3la, nres);
-        ktmin = ktmin + 1;
+        ktmin += 1;
         if (ktmin > 5 && abserr < 1.0e-3*errsum) ier = 5;
         if (abseps >= abserr) goto label_100;
-        ktmin = 0;
+        ktmin  = 0;
         abserr = abseps;
         result = reseps;
         correc = erlarg;
-        ertest = std::max(epsabs, epsrel*std::abs(reseps));
+        ertest = std::max(epsabs, epsrel * std::abs(reseps));
         // jump out of for-loop
         if (abserr <= ertest) goto label_150;
         //
@@ -2031,14 +2162,14 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
         label_110:
         maxerr = ARRAYF(iord, 1);
         errmax = ARRAYF(elist, maxerr);
-        nrmax = 1;
+        nrmax  = 1;
         extrap = false;
-        small = small*0.5;
+        small *= 0.5;
         erlarg = errsum;
         goto label_140;
         label_120:
-        small = small*0.5;
-        numrl2 = numrl2 + 1;
+        small  *= 0.5;
+        numrl2 += 1;
         ARRAYF(rlist2, numrl2) = area;
         label_130:
         ertest = errbnd;
@@ -2053,7 +2184,7 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
     label_150:
     if (abserr == oflow || nres == 0) goto label_170;
     if (ier + ierro == 0) goto label_165;
-    if (ierro == 3) abserr = abserr + correc;
+    if (ierro == 3) abserr += correc;
     if (ier == 0) ier = 3;
     if (result != 0.0 && area != 0.0) goto label_160;
     if (abserr > errsum) goto label_170;
@@ -2066,7 +2197,7 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
     //
     label_165:
     if (ksgn == -1 && std::max(std::abs(result), std::abs(area)) <= defabs*1.0e-2) goto label_190;
-    if(1.0e-2 > result/area || result/area > 1.0e2 || errsum >= std::abs(area)) ier = 6;
+    if (1.0e-2 > result/area || result/area > 1.0e2 || errsum >= std::abs(area)) ier = 6;
     goto label_190;
     //
     // compute global integral sum.
@@ -2081,6 +2212,262 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
     if (ier > 2) ier -= 1;
     label_200:
     if (integr == 2 && omega < 0.0) result = -result;
+    label_999:
+    return;
+}
+
+void dqaws(QUADPACK_CPP_FUNCTION f,
+           const double a,
+           const double b,
+           const double alfa,
+           const double beta,
+           const int integr,
+           const double epsabs,
+           const double epsrel,
+           double &result,
+           double &abserr,
+           int &neval,
+           int &ier,
+           const int limit,
+           const int lenw,
+           int &last,
+           int *iwork,
+           double *work,
+           void *data)
+{
+    int lvl, l1, l2, l3;
+    // first executable statement  dqaws
+    ier    = 6;
+    neval  = 0;
+    last   = 0;
+    result = 0.0;
+    abserr = 0.0;
+    if (limit < 2 || lenw < limit*4) goto label_10;
+    //
+    // prepare call for dqawse.
+    //
+    l1 = limit + 1;
+    l2 = limit + l1;
+    l3 = limit + l2;
+    //
+    dqawse(f, a, b, alfa, beta, integr, epsabs, epsrel, limit, result, abserr, neval, ier, 
+        &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), iwork, last, data);
+    //
+    // call error handler if necessary
+    //
+    lvl = 0;
+    label_10:
+    if (ier == 6) ier = 1;
+    if (ier != 0) {
+        std::string messg = "abnormal return from dqaws";
+        xerror(messg, ier, lvl);
+    }
+    return;
+}
+
+void dqawse(QUADPACK_CPP_FUNCTION f,
+            const double a,
+            const double b,
+            const double alfa,
+            const double beta,
+            const int integr,
+            const double epsabs,
+            const double epsrel,
+            const int limit,
+            double &result,
+            double &abserr,
+            int &neval,
+            int &ier,
+            double *alist,
+            double *blist,
+            double *rlist,
+            double *elist,
+            int *iord,
+            int &last,
+            void *data)
+{
+    double centre, resas1, resas2, rg[25], rh[25], ri[25], rj[25];
+    int iroff1, iroff2, k, nev, nrmax;
+    double a1, b1, area1, error1;
+    double a2, b2, area2, error2;
+    double area12;
+    double erro12;
+    double area;
+    double errbnd;
+    double errmax;
+    double errsum;
+    int maxerr;
+    double epmach, uflow;
+    // first executable statement  dqawse
+    epmach = ARRAYF(d1mach, 4);
+    uflow  = ARRAYF(d1mach, 1);
+    //
+    // test on validity of parameters
+    // ------------------------------
+    //
+    ier              = 6;
+    neval            = 0;
+    last             = 0;
+    ARRAYF(rlist, 1) = 0.0;
+    ARRAYF(elist, 1) = 0.0;
+    ARRAYF(iord,  1) = 0;
+    result           = 0.0;
+    abserr           = 0.0;
+    if (b <= a || (epsabs == 0.0 && epsrel < std::max(50.0*epmach, 5.0e-29)) || 
+        alfa <= -1.0 || beta <= -1.0 || integr < 1 || integr > 4 || limit < 2) goto label_999;
+    ier              = 0;
+    //
+    // compute the modified chebyshev moments.
+    //
+    dqmomo(alfa, beta, ri, rj, rg, rh, integr);
+    //
+    // integrate over the intervals (a,(a+b)/2) and ((a+b)/2,b).
+    //
+    centre = 0.5 * (b + a);
+    dqc25s(f, a, b, a, centre, alfa, beta, ri, rj, rg, rh, area1, error1, resas1, integr, nev, data);
+    neval  = nev;
+    dqc25s(f, a, b, centre, b, alfa, beta, ri, rj, rg, rh, area2, error2, resas2, integr, nev, data);
+    last   = 2;
+    neval  = neval + nev;
+    result = area1 + area2;
+    abserr = error1 + error2;
+    //
+    // test on accuracy.
+    //
+    errbnd = std::max(epsabs, epsrel * std::abs(result));
+    //
+    // initialization
+    // --------------
+    //
+    if (error2 > error1) goto label_10;
+    ARRAYF(alist, 1) = a;
+    ARRAYF(alist, 2) = centre;
+    ARRAYF(blist, 1) = centre;
+    ARRAYF(blist, 2) = b;
+    ARRAYF(rlist, 1) = area1;
+    ARRAYF(rlist, 2) = area2;
+    ARRAYF(elist, 1) = error1;
+    ARRAYF(elist, 2) = error2;
+    goto label_20;
+    label_10:
+    ARRAYF(alist, 1) = centre;
+    ARRAYF(alist, 2) = a;
+    ARRAYF(blist, 1) = b;
+    ARRAYF(blist, 2) = centre;
+    ARRAYF(rlist, 1) = area2;
+    ARRAYF(rlist, 2) = area1;
+    ARRAYF(elist, 1) = error2;
+    ARRAYF(elist, 2) = error1;
+    label_20:
+    ARRAYF(iord, 1) = 1;
+    ARRAYF(iord, 2) = 2;
+    if (limit == 2) ier = 1;
+    if (abserr <= errbnd || ier == 1) goto label_999;
+    errmax          = ARRAYF(elist, 1);
+    maxerr          = 1;
+    nrmax           = 1;
+    area            = result;
+    errsum          = abserr;
+    iroff1          = 0;
+    iroff2          = 0;
+    //
+    // main for-loop
+    // -------------
+    //
+    for (last = 3; last <= limit; ++last) {
+        std::cout << "begin : last = " << last  << ", ok" << std::endl;
+        //
+        // bisect the subinterval with largest error estimate.
+        //
+        a1 = ARRAYF(alist, maxerr);
+        b1 = 0.5 * (ARRAYF(alist, maxerr) + ARRAYF(blist, maxerr));
+        a2 = b1;
+        b2 = ARRAYF(blist, maxerr);
+        std::cout << "last = " << last << ", ok" << std::endl;
+        dqc25s(f, a, b, a1, b1, alfa, beta, ri, rj, rg, rh, area1, error1, resas1, integr, nev, data);
+        neval = neval + nev;
+        dqc25s(f, a, b, a2, b2, alfa, beta, ri, rj, rg, rh, area2, error2, resas2, integr, nev, data);
+        neval = neval + nev;
+        std::cout << "dqc25s : last = " << last  << ", ok" << std::endl;
+        //
+        // improve previous approximations integral and error
+        // and test for accuracy.
+        //
+        area12 = area1 + area2;
+        erro12 = error1 + error2;
+        errsum = errsum + erro12 - errmax;
+        area   = area + area12 - ARRAYF(rlist, maxerr);
+        if (a == a1 || b == b2) goto label_30;
+        if (resas1 == error1 || resas2 == error2) goto label_30;
+        //
+        // test for roundoff error.
+        //
+        if (std::abs(ARRAYF(rlist, maxerr) - area12) < 1.0e-5*std::abs(area12) && erro12 >= 0.99*errmax) iroff1 += 1;
+        if (last > 10 && erro12 > errmax) iroff2 += 1;
+        label_30:
+        ARRAYF(rlist, maxerr) = area1;
+        ARRAYF(rlist,   last) = area2;
+        //
+        // test on accuracy.
+        //
+        errbnd = std::max(epsabs, epsrel * std::abs(area));
+        if (errsum <= errbnd) goto label_35;
+        //
+        // set error flag in the case that the number of interval
+        // bisections exceeds limit.
+        //
+        if (last == limit) ier = 1;
+        //
+        // set error flag in the case of roundoff error.
+        //
+        if (iroff1 >= 6 || iroff2 >= 20) ier = 2;
+        //
+        // set error flag in the case of bad integrand behaviour
+        // at interior points of integration range.
+        //
+        if(std::max(std::abs(a1), std::abs(b2)) <= (1.0 + 1.0e2*epmach)*(std::abs(a2) + 1.0e3*uflow)) ier = 3;
+        //
+        // append the newly-created intervals to the list.
+        //
+        label_35:
+        std::cout << "35 : last = " << last  << ", ok" << std::endl;
+        if (error2 > error1) goto label_40;
+        ARRAYF(alist,   last) = a2;
+        ARRAYF(blist, maxerr) = b1;
+        ARRAYF(blist,   last) = b2;
+        ARRAYF(elist, maxerr) = error1;
+        ARRAYF(elist,   last) = error2;
+        goto label_50;
+        label_40:
+        ARRAYF(alist, maxerr) = a2;
+        ARRAYF(alist,   last) = a1;
+        ARRAYF(blist,   last) = b1;
+        ARRAYF(rlist, maxerr) = area2;
+        ARRAYF(rlist,   last) = area1;
+        ARRAYF(elist, maxerr) = error2;
+        ARRAYF(elist,   last) = error1;
+        //
+        // call subroutine dqpsrt to maintain the descending ordering
+        // in the list of error estimates and select the subinterval
+        // with largest error estimate (to be bisected next).
+        //
+        label_50:
+        dqpsrt(limit, last, maxerr, errmax, elist, iord, nrmax);
+        // jump out of for-loop
+        if (ier != 0 || errsum <= errbnd) goto label_70;
+    }
+    //
+    // compute final result.
+    // ---------------------
+    //
+    label_70:
+    std::cout << "70 : last = " << last  << ", ok" << std::endl;
+    result = 0.0;
+    std::cout << "last = " << last  << ", ok" << std::endl;
+    for (k = 1; k <= last; ++k) {
+        result += ARRAYF(rlist, k);
+    }
+    abserr = errsum;
     label_999:
     return;
 }
@@ -2186,8 +2573,456 @@ void dqc25f(QUADPACK_CPP_FUNCTION f,
             double *chebmo, // chebmo
             void *data)
 {
-
+    double ac, an, an2, as, asap, ass, conc, cons, cospar, d[25], d1[25], d2[25],
+           estc, ests, parint, par2, par22, p2, p3, p4, sinpar, v[28];
+    int i, iers, isym, j, k, m, noequ, noeq1;
+    double centr;
+    double hlgth;
+    double fval[25];
+    double cheb12[13];
+    double cheb24[25];
+    double resc12;
+    double resc24;
+    double ress12;
+    double ress24;
+    double oflow;
+    double x[11];
+    for (k = 1; k <= 11; ++k) ARRAYF(x, k) = std::cos(k*M_PI/24.0);
+    // first executable statement  dqc25f
+    oflow  = ARRAYF(d1mach, 2);
+    //
+    centr  = 0.5 * (b + a);
+    hlgth  = 0.5 * (b - a);
+    parint = omega * hlgth;
+    //
+    // compute the integral using the 15-point gauss-kronrod
+    // formula if the value of the parameter in the integrand
+    // is small.
+    //
+    if(std::abs(parint) > 2.0) goto label_10;
+    dqk15w(f, dqwgtf, omega, p2, p3, p4, integr, a, b, result, abserr, resabs, resasc, data);
+    neval = 15;
+    goto label_170;
+    //
+    // compute the integral using the generalized clenshaw-
+    // curtis method.
+    //
+    label_10:
+    conc   = hlgth * std::cos(centr*omega);
+    cons   = hlgth * std::sin(centr*omega);
+    resasc = oflow;
+    neval  = 25;
+    //
+    // check whether the chebyshev moments for this interval
+    // have already been computed.
+    // 
+    if (nrmom < momcom || ksave == 1) goto label_120;
+    //
+    // compute a new set of chebyshev moments.
+    // 
+    m      = momcom + 1;
+    par2   = parint * parint;
+    par22  = par2 + 2.0;
+    sinpar = std::sin(parint);
+    cospar = std::cos(parint);
+    //
+    // compute the chebyshev moments with respect to cosine.
+    //
+    ARRAYF(v, 1) = 2.0 * sinpar / parint; 
+    ARRAYF(v, 2) = (8.0*cospar + (par2 + par2 - 8.0) * sinpar/parint) / par2;
+    ARRAYF(v, 3) = (32.0*(par2 - 12.0)*cospar + (2.0*((par2 - 80.0)*par2 + 192.0)*sinpar) / parint) / (par2*par2);
+    ac = 8.0 * cospar;
+    as = 24.0 * parint * sinpar;
+    if (std::abs(parint) > 24.0) goto label_30;
+    //
+    // compute the chebyshev moments as the solutions of a
+    // boundary value problem with 1 initial value (v(3)) and 1
+    // end value (computed using an asymptotic formula).
+    //
+    noequ = 25;
+    noeq1 = noequ - 1;
+    an    = 6.0;
+    for (k = 1; k <= noeq1; ++k) {
+        an2             = an * an;
+        ARRAYF(d,    k) = -2.0 * (an2 - 4.0) * (par22 - an2 - an2);
+        ARRAYF(d2,   k) = (an - 1.0) * (an - 2.0) * par2;
+        ARRAYF(d1, k+1) = (an + 3.0) * (an + 4.0) * par2;
+        ARRAYF(v,  k+3) = as - (an2 - 4.0) * ac;
+        an             += 2.0;
+    }
+    an2                = an * an;
+    ARRAYF(d,   noequ) = -2.0 * (an2 - 4.0) * (par22 - an2 - an2);
+    ARRAYF(v, noequ+3) = as - (an2 - 4.0) * ac;
+    ARRAYF(v,       4) = ARRAYF(v, 4) - 56.0 * par2 * ARRAYF(v, 3);
+    ass                = parint * sinpar;
+    asap               = (((((210.0*par2 - 1.0)*cospar - (105.0*par2 - 63.0)*ass) / an2 - (1.0 - 15.0*par2)*cospar
+                       + 15.0*ass) / an2 - cospar + 3.0*ass) / an2 - cospar) / an2;
+    ARRAYF(v, noequ+3) = ARRAYF(v, noequ+3) - 2.0 * asap * par2 * (an - 1.0) * (an - 2.0);
+    //
+    // solve the tridiagonal system by means of gaussian
+    // elimination with partial pivoting.
+    //
+    dgtsl(noequ, d1, d, d2, &ARRAYF(v, 4), iers);
+    goto label_50;
+    //
+    // compute the chebyshev moments by means of forward
+    // recursion.
+    //
+    label_30:
+    an = 4.0;
+    for (i = 4; i <= 13; ++i) {
+        an2          = an * an;
+        ARRAYF(v, i) = ((an2 - 4.0) * (2.0 * (par22 - an2 - an2) * ARRAYF(v, i-1) - ac) 
+                     + as - par2 * (an + 1.0) * (an + 2.0) * ARRAYF(v, i-2)) / (par2 * (an - 1.0) * (an - 2.0));
+        an          += 2.0;
+    }
+    label_50:
+    for (j = 1; j <= 13; ++j) {
+        MATF(chebmo, 25, m, 2*j-1) = ARRAYF(v, j);
+    }
+    //
+    // compute the chebyshev moments with respect to sine.
+    //
+    ARRAYF(v, 1) = 2.0 * (sinpar - parint * cospar) / par2;
+    ARRAYF(v, 2) = (18.0 - 48.0/par2) * sinpar / par2 + (-2.0 + 48.0/par2) * cospar / parint;
+    ac           = -24.0 * parint * cospar;
+    as           = -8.0 * sinpar;
+    if (std::abs(parint) > 24.0) goto label_80;
+    //
+    // compute the chebyshev moments as the solutions of a boundary
+    // value problem with 1 initial value (v(2)) and 1 end value
+    // (computed using an asymptotic formula).
+    //
+    an = 5.0;
+    for (k = 1; k <= noeq1; ++k) {
+        an2             = an * an;
+        ARRAYF(d,    k) = -2.0 * (an2 - 4.0) * (par22 - an2 - an2);
+        ARRAYF(d2,   k) = (an - 1.0) * (an - 2.0) * par2;
+        ARRAYF(d1, k+1) = (an + 3.0) * (an + 4.0) * par2;
+        ARRAYF(v,  k+2) = ac + (an2 - 4.0) * as;
+        an             += 2.0;
+    }
+    an2                = an * an;
+    ARRAYF(d,   noequ) = -2.0 * (an2 - 4.0) * (par22 - an2 - an2);
+    ARRAYF(v, noequ+2) = ac + (an2 - 4.0) * as;
+    ARRAYF(v,       3) = ARRAYF(v, 3) - 42.0 * par2 * ARRAYF(v, 2);
+    ass                = parint * cospar;
+    asap               = (((((105.0*par2 - 63.0)*ass + (210.0*par2 - 1.0)*sinpar) / an2 + (15.0*par2 - 1.0)*sinpar - 15.0*ass) / an2 - 3.0*ass - sinpar) / an2 - sinpar) / an2;
+    ARRAYF(v, noequ+2) = ARRAYF(v, noequ+2) - 2.0 * asap * par2 * (an - 1.0) *(an - 2.0);
+    //
+    // solve the tridiagonal system by means of gaussian
+    // elimination with partial pivoting.
+    //
+    dgtsl(noequ, d1, d, d2, &ARRAYF(v, 3), iers);
+    goto label_100;
+    //
+    // compute the chebyshev moments by means of forward recursion.
+    //
+    label_80:
+    an = 3.0;
+    for (i = 3; i <= 12; ++i) {
+        an2          = an * an;
+        ARRAYF(v, i) = ((an2 - 4.0) * (2.0 * (par22 - an2 - an2) * ARRAYF(v, i-1) + as) + ac - par2 * (an + 1.0) * (an + 2.0) * ARRAYF(v, i-2)) / (par2 * (an - 1.0) * (an - 2.0));
+        an          += 2.0;
+    }
+    label_100:
+    for (j = 1; j <= 12; ++j) {
+        MATF(chebmo, 25, m, 2*j) = ARRAYF(v, j);
+    }
+    label_120:
+    if (nrmom < momcom) m = nrmom + 1;
+    if (momcom < maxp1 - 1 && nrmom >= momcom) momcom += 1;
+    //
+    // compute the coefficients of the chebyshev expansions
+    // of degrees 12 and 24 of the function f.
+    //
+    ARRAYF(fval,  1) = 0.5 * f(centr + hlgth, data);
+    ARRAYF(fval, 13) = f(centr, data);
+    ARRAYF(fval, 25) = 0.5 * f(centr - hlgth, data);
+    for (i = 2; i <= 12; ++i) {
+        isym = 26 - i;
+        ARRAYF(fval,    i) = f(hlgth * ARRAYF(x, i-1) + centr, data);
+        ARRAYF(fval, isym) = f(centr - hlgth * ARRAYF(x, i-1), data);
+    }
+    dqcheb(x, fval, cheb12, cheb24);
+    //
+    // compute the integral and error estimates.
+    //
+    resc12 = ARRAYF(cheb12, 13) * MATF(chebmo, 25, m, 13);
+    ress12 = 0.0;
+    k = 11;
+    for (j = 1; j <= 6; ++j) {
+        resc12 = resc12 + ARRAYF(cheb12,   k) * MATF(chebmo, 25, m,   k);
+        ress12 = ress12 + ARRAYF(cheb12, k+1) * MATF(chebmo, 25, m, k+1);
+        k     -= 2;
+    }
+    resc24 = ARRAYF(cheb24, 25) * MATF(chebmo, maxp1, m, 25);
+    ress24 = 0.0;
+    resabs = std::abs(ARRAYF(cheb24, 25));
+    k      = 23;
+    for (j = 1; j <= 12; ++j) {
+        resc24 = resc24 + ARRAYF(cheb24,   k) * MATF(chebmo, 25, m,   k);
+        ress24 = ress24 + ARRAYF(cheb24, k+1) * MATF(chebmo, 25, m, k+1);
+        resabs = resabs + std::abs(ARRAYF(cheb24, k)) + std::abs(ARRAYF(cheb24, k+1));
+        k -= 2;
+    }
+    estc   = std::abs(resc24 - resc12);
+    ests   = std::abs(ress24 - ress12);
+    resabs = resabs * std::abs(hlgth);
+    if (integr == 2) goto label_160;
+    result = conc*resc24 - cons*ress24;
+    abserr = std::abs(conc*estc) + std::abs(cons*ests);
+    goto label_170;
+    label_160:
+    result = conc*ress24 + cons*resc24;
+    abserr = std::abs(conc*ests) + std::abs(cons*estc);
+    label_170:
+    return;
 }
+
+void dqc25s(QUADPACK_CPP_FUNCTION f,
+            const double a,
+            const double b,
+            const double bl,
+            const double br,
+            const double alfa,
+            const double beta,
+            const double *ri,
+            const double *rj,
+            const double *rg,
+            const double *rh,
+            double &result,
+            double &abserr,
+            double &resasc,
+            const int integr,
+            int &nev,
+            void *data)
+{
+    double cheb12[13];
+    double cheb24[25];
+    double fval[25];
+    double res12;
+    double res24;
+    double hlgth;
+    double centr;
+    int k;
+    double dc, factor, fix, resabs, u;
+    int i, isym;
+    double x[11];
+    for (k = 1; k <= 11; ++k) ARRAYF(x, i) = std::cos(k*M_PI/24.0);
+    // first executable statement  dqc25s
+    nev = 25;
+    if (bl == a && (alfa != 0.0 || integr == 2 || integr == 4)) goto label_10;
+    if (br == b && (beta != 0.0 || integr == 3 || integr == 4)) goto label_140;
+    //
+    // if a.gt.bl and b.lt.br, apply the 15-point gauss-kronrod
+    // scheme.
+    //
+    dqk15w(f, dqwgts, a, b, alfa, beta, integr, bl, br, 
+        result, abserr, resabs, resasc, data);
+    nev = 15;
+    goto label_270;
+    //
+    // this part of the program is executed only if a = bl.
+    // ----------------------------------------------------
+    //
+    // compute the chebyshev series expansion of the
+    // following function
+    // f1 = (0.5*(b+b-br-a)-0.5*(br-a)*x)**beta
+    //        *f(0.5*(br-a)*x+0.5*(br+a))
+    //
+    label_10:
+    hlgth            = 0.5 * (br - bl);
+    centr            = 0.5 * (br + bl);
+    fix              = b - centr;
+    ARRAYF(fval,  1) = 0.5 * f(hlgth + centr, data) * std::pow(fix - hlgth, beta);
+    ARRAYF(fval, 13) = f(centr, data) * std::pow(fix, beta);
+    ARRAYF(fval, 25) = 0.5 * f(centr - hlgth, data) * std::pow(fix + hlgth, beta);
+    for (i = 2; i <= 12; ++i) {
+        u                  = hlgth * ARRAYF(x, i-1);
+        isym               = 26 - i;
+        ARRAYF(fval,    i) = f(u + centr, data) * std::pow(fix - u, beta);
+        ARRAYF(fval, isym) = f(centr - u, data) * std::pow(fix + u, beta);
+    }
+    factor = std::pow(hlgth, alfa + 1.0);
+    result = 0.0;
+    abserr = 0.0;
+    res12  = 0.0;
+    res24  = 0.0;
+    if (integr > 2) goto label_70;
+    dqcheb(x, fval, cheb12, cheb24);
+    //
+    // integr = 1  (or 2)
+    //
+    for (i = 1; i <= 13; ++i) {
+        res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(ri, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(ri, i);
+    }
+    if (integr == 1) goto label_130;
+    //
+    // integr = 2
+    //
+    dc     = std::log(br - bl);
+    result = res24 * dc;
+    abserr = std::abs((res24 - res12) * dc);
+    res12  = 0.0;
+    res24  = 0.0;
+    for (i = 1; i <= 13; ++i) {
+        res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(rg, i);
+        res24 = res12 + ARRAYF(cheb24, i) * ARRAYF(rg, i);
+    }
+    for (i = 14; i <= 25; ++i) {
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rg, i);
+    }
+    goto label_130;
+    //
+    // compute the chebyshev series expansion of the
+    // following function
+    // f4 = f1*log(0.5*(b+b-br-a)-0.5*(br-a)*x)
+    //
+    label_70:
+    ARRAYF(fval,  1) = ARRAYF(fval,  1) * std::log(fix - hlgth);
+    ARRAYF(fval, 13) = ARRAYF(fval, 13) * std::log(fix);
+    ARRAYF(fval, 25) = ARRAYF(fval, 25) * std::log(fix + hlgth);
+    for (i = 2; i <= 12; ++i) {
+        u                  = hlgth * ARRAYF(x, i-1);
+        isym               = 26 - i;
+        ARRAYF(fval,    i) = ARRAYF(fval,    i) * std::log(fix - u);
+        ARRAYF(fval, isym) = ARRAYF(fval, isym) * std::log(fix + u);
+    }
+    dqcheb(x, fval, cheb12, cheb24);
+    //
+    // integr = 3  (or 4)
+    //
+    for (i = 1; i <= 13; ++i) {
+        res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(ri, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(ri, i);
+    }
+    for (i = 14; i <= 25; ++i) {
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(ri, i);
+    }
+    if (integr == 3) goto label_130;
+    //
+    // integr = 4
+    //
+    dc     = std::log(br - bl);
+    result = res24 * dc;
+    abserr = std::abs((res24 - res12) * dc);
+    res12  = 0.0;
+    res24  = 0.0;
+    for (i = 1; i <= 13; ++i) {
+        res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(rg, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rg, i);
+    }
+    for (i = 14; i <= 25; ++i) {
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rg, i);
+    }
+    label_130:
+    result = (result + res24) * factor;
+    abserr = (abserr + std::abs(res24 - res12)) * factor;
+    goto label_270;
+    //
+    // this part of the program is executed only if b = br.
+    // ----------------------------------------------------
+    //
+    // compute the chebyshev series expansion of the
+    // following function
+    // f2 = (0.5*(b+bl-a-a)+0.5*(b-bl)*x)**alfa
+    //      *f(0.5*(b-bl)*x+0.5*(b+bl))
+    //
+    label_140:
+    hlgth            = 0.5 * (br - bl);
+    centr            = 0.5 * (br + bl);
+    fix              = centr - a;
+    ARRAYF(fval,  1) = 0.5 * f(hlgth + centr, data) * std::pow(fix + hlgth, alfa);
+    ARRAYF(fval, 13) = f(centr, data) * std::pow(fix, alfa);
+    ARRAYF(fval, 25) = 0.5 * f(centr - hlgth, data) * std::pow(fix - hlgth, alfa);
+    for (i = 2; i <= 12; ++i) {
+        u                  = hlgth * ARRAYF(x, i-1);
+        isym               = 26 - i;
+        ARRAYF(fval,    i) = f(u + centr, data) * std::pow(fix + u, alfa);
+        ARRAYF(fval, isym) = f(centr - u, data) * std::pow(fix - u, alfa);
+    }
+    factor = std::pow(hlgth, beta + 1.0);
+    result = 0.0;
+    abserr = 0.0;
+    res12  = 0.0;
+    res24  = 0.0;
+    if (integr == 2 || integr == 4) goto label_200;
+    //
+    // integr = 1  (or 3)
+    //
+    dqcheb(x, fval, cheb12, cheb24);
+    for (i = 14; i <= 25; ++i) {
+        res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(rj, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rj, i);
+    }
+    for (i = 14; i <= 25; ++i) {
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rj, i);
+    }
+    if (integr == 1) goto label_260;
+    //
+    // integr = 3
+    //
+    dc     = std::log(br - bl);
+    result = res24 * dc;
+    abserr = std::abs((res24 - res12) * dc);
+    res12  = 0.0;
+    res24  = 0.0;
+    for (i = 1; i <= 13; ++i) {
+        res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(rh, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rh, i);
+    }
+    for (i = 14; i <= 25; ++i) {
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rh, i);
+    }
+    goto label_260;
+    //
+    // compute the chebyshev series expansion of the
+    // following function
+    // f3 = f2*log(0.5*(b-bl)*x+0.5*(b+bl-a-a))
+    //
+    label_200:
+    ARRAYF(fval,  1) = ARRAYF(fval,  1) * std::log(hlgth + fix);
+    ARRAYF(fval, 13) = ARRAYF(fval, 13) * std::log(fix);
+    ARRAYF(fval, 25) = ARRAYF(fval, 25) * std::log(fix - hlgth);
+    for (i = 2; i <= 12; ++i) {
+        u                  = hlgth * ARRAYF(x, i-1);
+        isym               = 26 - i;
+        ARRAYF(fval,    i) = ARRAYF(fval,    i) * std::log(u + fix);
+        ARRAYF(fval, isym) = ARRAYF(fval, isym) * std::log(fix - u);
+    }
+    dqcheb(x, fval, cheb12, cheb24);
+    //
+    // integr = 2  (or 4)
+    //
+    for (i = 1; i <= 13; ++i) {
+        res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(rj, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rj, i);
+    }
+    for (i = 14; i <= 25; ++i) {
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rj, i);
+    }
+    if (integr == 2) goto label_260;
+    dc     = std::log(br - bl);
+    result = res24 * dc;
+    abserr = std::abs((res24 - res12) * dc);
+    res12  = 0.0;
+    res24  = 0.0;
+    //
+    // integr = 4
+    //
+    for (i = 1; i <= 13; ++i) {
+        res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(rh, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rh, i);
+    }
+    label_260:
+    result = (result + res24) * factor;
+    abserr = (abserr + std::abs(res24 - res12)) * factor;
+    label_270:
+    return;
+}
+
 
 void dqcheb(const double *x,
             double *fval,
@@ -2198,96 +3033,96 @@ void dqcheb(const double *x,
     int i, j;
     // first executable statement  dqcheb
     for (i = 1; i <= 12; ++i) {
-        j = 26 - i;
-        ARRAYF(v, i)    = ARRAYF(fval, i) - ARRAYF(fval, j);
+        j               = 26 - i;
+        ARRAYF(v,    i) = ARRAYF(fval, i) - ARRAYF(fval, j);
         ARRAYF(fval, i) = ARRAYF(fval, i) + ARRAYF(fval, j);
     }
-    alam1 = ARRAYF(v, 1) - ARRAYF(v, 9);
-    alam2 = ARRAYF(x, 6) * (ARRAYF(v, 3) - ARRAYF(v, 7) - ARRAYF(v, 11));
+    alam1              = ARRAYF(v, 1) - ARRAYF(v, 9);
+    alam2              = ARRAYF(x, 6) * (ARRAYF(v, 3) - ARRAYF(v, 7) - ARRAYF(v, 11));
     ARRAYF(cheb12,  4) = alam1 + alam2;
     ARRAYF(cheb12, 10) = alam1 - alam2;
-    alam1 = ARRAYF(v, 2) - ARRAYF(v, 8) - ARRAYF(v, 10);
-    alam2 = ARRAYF(v, 4) - ARRAYF(v, 6) - ARRAYF(v, 12);
-    alam  = ARRAYF(x, 3)*alam1 + ARRAYF(x, 9)*alam2;
+    alam1              = ARRAYF(v, 2) - ARRAYF(v, 8) - ARRAYF(v, 10);
+    alam2              = ARRAYF(v, 4) - ARRAYF(v, 6) - ARRAYF(v, 12);
+    alam               = ARRAYF(x, 3)*alam1 + ARRAYF(x, 9)*alam2;
     ARRAYF(cheb24,  4) = ARRAYF(cheb12, 4) + alam;
     ARRAYF(cheb24, 22) = ARRAYF(cheb12, 4) - alam;
-    alam = ARRAYF(x, 9)*alam1 - ARRAYF(x, 3)*alam2;
+    alam               = ARRAYF(x, 9)*alam1 - ARRAYF(x, 3)*alam2;
     ARRAYF(cheb24, 10) = ARRAYF(cheb12, 10) + alam;
     ARRAYF(cheb24, 16) = ARRAYF(cheb12, 10) - alam;
-    part1 = ARRAYF(x, 4) * ARRAYF(v, 5);
-    part2 = ARRAYF(x, 8) * ARRAYF(v, 9);
-    part3 = ARRAYF(x, 6) * ARRAYF(v, 7);
-    alam1 = ARRAYF(v, 1) + part1 + part2;
-    alam2 = ARRAYF(x, 2)*ARRAYF(v, 3) + part3 + ARRAYF(x, 10)*ARRAYF(v, 11);
+    part1              = ARRAYF(x, 4) * ARRAYF(v, 5);
+    part2              = ARRAYF(x, 8) * ARRAYF(v, 9);
+    part3              = ARRAYF(x, 6) * ARRAYF(v, 7);
+    alam1              = ARRAYF(v, 1) + part1 + part2;
+    alam2              = ARRAYF(x, 2)*ARRAYF(v, 3) + part3 + ARRAYF(x, 10)*ARRAYF(v, 11);
     ARRAYF(cheb12,  2) = alam1 + alam2;
     ARRAYF(cheb12, 12) = alam1 - alam2;
-    alam = ARRAYF(x, 1)*ARRAYF(v, 2) + ARRAYF(x, 3)*ARRAYF(v,  4) + ARRAYF(x,  5)*ARRAYF(v,  6) 
-         + ARRAYF(x, 7)*ARRAYF(v, 8) + ARRAYF(x, 9)*ARRAYF(v, 10) + ARRAYF(x, 11)*ARRAYF(v, 12);
+    alam               = ARRAYF(x, 1)*ARRAYF(v, 2) + ARRAYF(x, 3)*ARRAYF(v,  4) + ARRAYF(x,  5)*ARRAYF(v,  6) 
+                       + ARRAYF(x, 7)*ARRAYF(v, 8) + ARRAYF(x, 9)*ARRAYF(v, 10) + ARRAYF(x, 11)*ARRAYF(v, 12);
     ARRAYF(cheb24,  2) = ARRAYF(cheb12, 2) + alam;
     ARRAYF(cheb24, 24) = ARRAYF(cheb12, 2) - alam;
-    alam = ARRAYF(x, 11)*ARRAYF(v, 2) - ARRAYF(x, 9)*ARRAYF(v,  4) + ARRAYF(x, 7)*ARRAYF(v,  6)
-         - ARRAYF(x,  5)*ARRAYF(v, 8) + ARRAYF(x, 3)*ARRAYF(v, 10) - ARRAYF(x, 1)*ARRAYF(v, 12);
+    alam               = ARRAYF(x, 11)*ARRAYF(v, 2) - ARRAYF(x, 9)*ARRAYF(v,  4) + ARRAYF(x, 7)*ARRAYF(v,  6)
+                       - ARRAYF(x,  5)*ARRAYF(v, 8) + ARRAYF(x, 3)*ARRAYF(v, 10) - ARRAYF(x, 1)*ARRAYF(v, 12);
     ARRAYF(cheb24, 12) = ARRAYF(cheb12, 12) + alam;
     ARRAYF(cheb24, 14) = ARRAYF(cheb12, 12) - alam;
-    alam1 = ARRAYF(v, 1) - part1 + part2;
-    alam2 = ARRAYF(x, 10)*ARRAYF(v, 3) - part3 + ARRAYF(x, 2)*ARRAYF(v, 11);
-    ARRAYF(cheb12, 6) = alam1 + alam2;
-    ARRAYF(cheb12, 8) = alam1 - alam2;
-    alam = ARRAYF(x,  5)*ARRAYF(v, 2) - ARRAYF(x, 9)*ARRAYF(v,  4) - ARRAYF(x, 1)*ARRAYF(v,  6)
-         - ARRAYF(x, 11)*ARRAYF(v, 8) + ARRAYF(x, 3)*ARRAYF(v, 10) + ARRAYF(x, 7)*ARRAYF(v, 12);
+    alam1              = ARRAYF(v, 1) - part1 + part2;
+    alam2              = ARRAYF(x, 10)*ARRAYF(v, 3) - part3 + ARRAYF(x, 2)*ARRAYF(v, 11);
+    ARRAYF(cheb12, 6)  = alam1 + alam2;
+    ARRAYF(cheb12, 8)  = alam1 - alam2;
+    alam               = ARRAYF(x,  5)*ARRAYF(v, 2) - ARRAYF(x, 9)*ARRAYF(v,  4) - ARRAYF(x, 1)*ARRAYF(v,  6)
+                       - ARRAYF(x, 11)*ARRAYF(v, 8) + ARRAYF(x, 3)*ARRAYF(v, 10) + ARRAYF(x, 7)*ARRAYF(v, 12);
     ARRAYF(cheb24,  6) = ARRAYF(cheb12, 6) + alam;
     ARRAYF(cheb24, 20) = ARRAYF(cheb12, 6) - alam;
-    alam = ARRAYF(x, 7)*ARRAYF(v, 2) - ARRAYF(x, 3)*ARRAYF(v,  4) - ARRAYF(x, 11)*ARRAYF(v,  6)
-         + ARRAYF(x, 1)*ARRAYF(v, 8) - ARRAYF(x, 9)*ARRAYF(v, 10) - ARRAYF(x,  5)*ARRAYF(v, 12);
+    alam               = ARRAYF(x, 7)*ARRAYF(v, 2) - ARRAYF(x, 3)*ARRAYF(v,  4) - ARRAYF(x, 11)*ARRAYF(v,  6)
+                       + ARRAYF(x, 1)*ARRAYF(v, 8) - ARRAYF(x, 9)*ARRAYF(v, 10) - ARRAYF(x,  5)*ARRAYF(v, 12);
     ARRAYF(cheb24,  8) = ARRAYF(cheb12, 8) + alam;
     ARRAYF(cheb24, 18) = ARRAYF(cheb12, 8) - alam;
     for (i = 1; i <= 6; ++i) {
-        j = 14 - i;
-        ARRAYF(v, i)    = ARRAYF(fval, i) - ARRAYF(fval, j);
+        j               = 14 - i;
+        ARRAYF(v,    i) = ARRAYF(fval, i) - ARRAYF(fval, j);
         ARRAYF(fval, i) = ARRAYF(fval, i) + ARRAYF(fval, j);
     }
-    alam1 = ARRAYF(v, 1) + ARRAYF(x, 8)*ARRAYF(v, 5);
-    alam2 = ARRAYF(x, 4)*ARRAYF(v, 3);
+    alam1              = ARRAYF(v, 1) + ARRAYF(x, 8)*ARRAYF(v, 5);
+    alam2              = ARRAYF(x, 4) * ARRAYF(v, 3);
     ARRAYF(cheb12,  3) = alam1 + alam2;
     ARRAYF(cheb12, 11) = alam1 - alam2;
     ARRAYF(cheb12,  7) = ARRAYF(v, 1) - ARRAYF(v, 5);
-    alam = ARRAYF(x, 2)*ARRAYF(v, 2) + ARRAYF(x, 6)*ARRAYF(v, 4) + ARRAYF(x, 10)*ARRAYF(v, 6);
+    alam               = ARRAYF(x, 2)*ARRAYF(v, 2) + ARRAYF(x, 6)*ARRAYF(v, 4) + ARRAYF(x, 10)*ARRAYF(v, 6);
     ARRAYF(cheb24,  3) = ARRAYF(cheb12, 3) + alam;
     ARRAYF(cheb24, 23) = ARRAYF(cheb12, 3) - alam;
-    alam = ARRAYF(x, 6) * (ARRAYF(v, 2) - ARRAYF(v, 4) - ARRAYF(v, 6));
+    alam               = ARRAYF(x, 6) * (ARRAYF(v, 2) - ARRAYF(v, 4) - ARRAYF(v, 6));
     ARRAYF(cheb24,  7) = ARRAYF(cheb12, 7) + alam;
     ARRAYF(cheb24, 19) = ARRAYF(cheb12, 7) - alam;
-    alam = ARRAYF(x, 10)*ARRAYF(v, 2) - ARRAYF(x, 6)*ARRAYF(v, 4) + ARRAYF(x, 2)*ARRAYF(v, 6);
+    alam               = ARRAYF(x, 10)*ARRAYF(v, 2) - ARRAYF(x, 6)*ARRAYF(v, 4) + ARRAYF(x, 2)*ARRAYF(v, 6);
     ARRAYF(cheb24, 11) = ARRAYF(cheb12, 11) + alam;
     ARRAYF(cheb24, 15) = ARRAYF(cheb12, 11) - alam;
     for (i = 1; i <= 3; ++i) {
-        j = 8 - i;
-        ARRAYF(v, i)    = ARRAYF(fval, i) - ARRAYF(fval, j);
+        j               = 8 - i;
+        ARRAYF(v,    i) = ARRAYF(fval, i) - ARRAYF(fval, j);
         ARRAYF(fval, i) = ARRAYF(fval, i) + ARRAYF(fval, j);
     }
-    ARRAYF(cheb12, 5) = ARRAYF(v, 1) + ARRAYF(x, 8)*ARRAYF(v, 3);
-    ARRAYF(cheb12, 9) = ARRAYF(fval, 1) - ARRAYF(x, 8)*ARRAYF(fval, 3);
-    alam = ARRAYF(x, 4) * ARRAYF(v, 2);
+    ARRAYF(cheb12, 5)  = ARRAYF(v,    1) + ARRAYF(x, 8)*ARRAYF(v,    3);
+    ARRAYF(cheb12, 9)  = ARRAYF(fval, 1) - ARRAYF(x, 8)*ARRAYF(fval, 3);
+    alam               = ARRAYF(x, 4) * ARRAYF(v, 2);
     ARRAYF(cheb24,  5) = ARRAYF(cheb12, 5) + alam;
     ARRAYF(cheb24, 21) = ARRAYF(cheb12, 5) - alam;
-    alam = ARRAYF(x, 8)*ARRAYF(fval, 2) - ARRAYF(fval, 4);
+    alam               = ARRAYF(x, 8)*ARRAYF(fval, 2) - ARRAYF(fval, 4);
     ARRAYF(cheb24,  9) = ARRAYF(cheb12, 9) + alam;
     ARRAYF(cheb24, 17) = ARRAYF(cheb12, 9) - alam;
     ARRAYF(cheb12,  1) = ARRAYF(fval, 1) + ARRAYF(fval, 3);
-    alam =ARRAYF(fval, 2) + ARRAYF(fval, 4);
+    alam               = ARRAYF(fval, 2) + ARRAYF(fval, 4);
     ARRAYF(cheb24,  1) = ARRAYF(cheb12, 1) + alam;
     ARRAYF(cheb24, 25) = ARRAYF(cheb12, 1) - alam;
     ARRAYF(cheb12, 13) = ARRAYF(v, 1) - ARRAYF(v, 3);
     ARRAYF(cheb24, 13) = ARRAYF(cheb12, 13);
     alam = 1.0/6.0;
     for (i = 2; i <= 12; ++i) {
-        ARRAYF(cheb12, i) = ARRAYF(cheb12, i)*alam;
+        ARRAYF(cheb12, i) = ARRAYF(cheb12, i) * alam;
     }
-    alam = 0.5 * alam;
-    ARRAYF(cheb12,  1) = ARRAYF(cheb12,  1)*alam;
-    ARRAYF(cheb12, 13) = ARRAYF(cheb12, 13)*alam;
+    alam               = 0.5 * alam;
+    ARRAYF(cheb12,  1) = ARRAYF(cheb12,  1) * alam;
+    ARRAYF(cheb12, 13) = ARRAYF(cheb12, 13) * alam;
     for (i = 2; i <= 24; ++i) {
-        ARRAYF(cheb24, i) = ARRAYF(cheb24, i)*alam;
+        ARRAYF(cheb24, i) = ARRAYF(cheb24, i) * alam;
     }
     ARRAYF(cheb24,  1) = 0.5 * alam * ARRAYF(cheb24,  1);
     ARRAYF(cheb24, 25) = 0.5 * alam * ARRAYF(cheb24, 25);
@@ -2318,7 +3153,7 @@ void dqelg(int &n,
     if(n < 3) goto label_100;
     // limexp = 50
     ARRAYF(epstab, n+2) = ARRAYF(epstab, n);
-    newelm = (n - 1)/2;
+    newelm = (n - 1) / 2;
     ARRAYF(epstab, n) = oflow;
     num    = n;
     k1     = n;
@@ -2326,16 +3161,16 @@ void dqelg(int &n,
         k2     = k1 - 1;
         k3     = k1 - 2;
         res    = ARRAYF(epstab, k1+2);
-        e0     = ARRAYF(epstab, k3);
-        e1     = ARRAYF(epstab, k2);
+        e0     = ARRAYF(epstab,   k3);
+        e1     = ARRAYF(epstab,   k2);
         e2     = res;
         e1abs  = std::abs(e1);
         delta2 = e2 - e1;
         err2   = std::abs(delta2);
-        tol2   = std::max(std::abs(e2), e1abs)*epmach;
+        tol2   = std::max(std::abs(e2), e1abs) * epmach;
         delta3 = e1 - e0;
         err3   = std::abs(delta3);
-        tol3   = std::max(e1abs, std::abs(e0))*epmach;
+        tol3   = std::max(e1abs, std::abs(e0)) * epmach;
         if (err2 > tol2 || err3 > tol3) goto label_10;
         //
         // if e0, e1 and e2 are equal to within machine
@@ -3538,8 +4373,81 @@ void dqk61(QUADPACK_CPP_FUNCTION f,
     return;
 }
 
-
-
+void dqmomo(const double alfa,
+            const double beta,
+            double *ri,
+            double *rj,
+            double *rg,
+            double *rh,
+            const int integr)
+{
+    double alfp1, alfp2, an, anm1, betp1, betp2, ralf, rbet;
+    int i, im1;
+    //
+    // first executable statement  dqmomo
+    alfp1 = alfa + 1.0;
+    betp1 = beta + 1.0;
+    alfp2 = alfa + 2.0;
+    betp2 = beta + 2.0;
+    ralf  = std::pow(2.0, alfp1);
+    rbet  = std::pow(2.0, betp1);
+    //
+    // compute ri, rj using a forward recurrence relation.
+    //
+    ARRAYF(ri, 1) = ralf / alfp1;
+    ARRAYF(rj, 1) = rbet / betp1;
+    ARRAYF(ri, 2) = ARRAYF(ri, 1) * alfa / alfp2;
+    ARRAYF(rj, 2) = ARRAYF(rj, 1) * beta / betp2;
+    an            = 2.0;
+    anm1          = 1.0;
+    for (i = 3; i <= 25; ++i) {
+        ARRAYF(ri, i) = -(ralf + an * (an - alfp2) * ARRAYF(ri, i-1)) / (anm1 * (an + alfp1));
+        ARRAYF(rj, i) = -(rbet + an * (an - betp2) * ARRAYF(rj, i-1)) / (anm1 * (an + betp1));
+        anm1          = an;
+        an            = an + 1.0;
+    }
+    if (integr == 1) goto label_70;
+    if (integr == 3) goto label_40;
+    //
+    // compute rg using a forward recurrence relation.
+    //
+    ARRAYF(rg, 1) = -ARRAYF(ri, 1) / alfp1;
+    ARRAYF(rg, 2) = -(ralf + ralf) / (alfp2 * alfp2) - ARRAYF(rg, 1);
+    an            = 2.0;
+    anm1          = 1.0;
+    im1           = 2;
+    for (i = 3; i <= 25; ++i) {
+        ARRAYF(rg, i) = -(an * (an - alfp2) * ARRAYF(rg, im1) - an * ARRAYF(ri, im1) + anm1 * ARRAYF(ri, i)) / (anm1 * (an + alfp1));
+        anm1          = an;
+        an           += 1.0;
+        im1           = i;
+    }
+    if (integr == 2) goto label_70;
+    //
+    // compute rh using a forward recurrence relation.
+    //
+    label_40:
+    ARRAYF(rh, 1) = -ARRAYF(rj, 1) / betp1;
+    ARRAYF(rh, 2) = -(rbet + rbet) / (betp2 * betp2) - ARRAYF(rh, 1);
+    an            = 2.0;
+    anm1          = 1.0;
+    im1           = 2;
+    for (i = 3; i <= 25; ++i) {
+        ARRAYF(rh, i) = -(an * (an - betp2) * ARRAYF(rh, im1) - an * ARRAYF(rj, im1) + anm1 * ARRAYF(rj, i)) / (anm1 * (an + betp1));
+        anm1          = an;
+        an           += 1.0;
+        im1           = i;
+    }
+    for (i = 2; i <= 25; i += 2) {
+        ARRAYF(rh, i) = -ARRAYF(rh, i);
+    }
+    label_70:
+    for (i = 2; i <= 25; i += 2) {
+        ARRAYF(rj, i) = -ARRAYF(rj, i);
+    }
+    label_90:
+    return;
+}
 
 void dqpsrt(const int limit,
             const int last,
@@ -3654,6 +4562,32 @@ double dqwgtf(const double x,
     } else if (integr == 2) {
         return std::sin(omx);
     } else {
+        return 0.0;
+    }
+}
+
+double dqwgts(const double x,
+              const double a,
+              const double b,
+              const double alfa,
+              const double beta,
+              const int integr)
+{
+    double xma = x - a;
+    double bmx = b - x;
+    double coef_dqwgts = std::pow(xma, alfa) * std::pow(bmx, beta);
+
+    switch (integr)
+    {
+    case 1:
+        return coef_dqwgts;
+    case 2:
+        return coef_dqwgts * std::log(xma);
+    case 3:
+        return coef_dqwgts * std::log(bmx);
+    case 4:
+        return coef_dqwgts * std::log(xma) * std::log(bmx);
+    default:
         return 0.0;
     }
 }

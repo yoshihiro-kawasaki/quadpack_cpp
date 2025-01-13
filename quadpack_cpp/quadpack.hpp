@@ -18,6 +18,14 @@ typedef double (*QUADPACK_CPP_WEIGHT_FUNCTION)(const double x,
                                                const double d, 
                                                const int i);
 
+void dgtsl(const int n, 
+           double *c,
+           double *d,
+           double *e,
+           double *b,
+           int &info);
+
+
 void dqag(QUADPACK_CPP_FUNCTION f, 
           const double a, 
           const double b, 
@@ -244,6 +252,25 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
             double *chebmo, // **chebmo
             void *data);
 
+void dqawo(QUADPACK_CPP_FUNCTION f,
+           const double a,
+           const double b,
+           const double omega,
+           const int integr,
+           const double epsabs,
+           const double epsrel,
+           double &result,
+           double &abserr,
+           int &neval,
+           int &ier,
+           const int leniw,
+           const int maxp1,
+           const int lenw,
+           int &last,
+           int *iwork,
+           double *work,
+           void *data);
+
 void dqawoe(QUADPACK_CPP_FUNCTION f,
             const double a,
             const double b,
@@ -266,8 +293,48 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
             int *iord,
             int *nnlog,
             int &momcom,
-            double *chebmo, // **chebmo
+            double *chebmo,
             void * data);
+
+void dqaws(QUADPACK_CPP_FUNCTION f,
+           const double a,
+           const double b,
+           const double alfa,
+           const double beta,
+           const int integr,
+           const double epsabs,
+           const double epsrel,
+           double &result,
+           double &abserr,
+           int &neval,
+           int &ier,
+           const int limit,
+           const int lenw,
+           int &last,
+           int *iwork,
+           double *work,
+           void *data);
+
+void dqawse(QUADPACK_CPP_FUNCTION f,
+            const double a,
+            const double b,
+            const double alfa,
+            const double beta,
+            const int integr,
+            const double epsabs,
+            const double epsrel,
+            const int limit,
+            double &result,
+            double &abserr,
+            int &neval,
+            int &ier,
+            double *alist,
+            double *blist,
+            double *rlist,
+            double *elist,
+            int *iord,
+            int &last,
+            void *data);
 
 void dqc25c(QUADPACK_CPP_FUNCTION f,
             const double a,
@@ -294,6 +361,24 @@ void dqc25f(QUADPACK_CPP_FUNCTION f,
             double &resasc,
             int &momcom,
             double *chebmo, // chebmo
+            void *data);
+
+void dqc25s(QUADPACK_CPP_FUNCTION f,
+            const double a,
+            const double b,
+            const double bl,
+            const double br,
+            const double alfa,
+            const double beta,
+            const double *ri,
+            const double *rj,
+            const double *rg,
+            const double *rh,
+            double &result,
+            double &abserr,
+            double &resasc,
+            const int integr,
+            int &nev,
             void *data);
 
 void dqcheb(const double *x,
@@ -388,6 +473,14 @@ void dqk61(QUADPACK_CPP_FUNCTION f,
            double &resasc,
            void *data);
 
+void dqmomo(const double alfa,
+            const double beta,
+            double *ri,
+            double *rj,
+            double *rg,
+            double *rh,
+            const int integr);
+
 void dqpsrt(const int limit,
             const int last,
             int &maxerr,
@@ -408,6 +501,13 @@ double dqwgtf(const double x,
               const double p2,
               const double p3,
               const double p4,
+              const int integr);
+
+double dqwgts(const double x,
+              const double a,
+              const double b,
+              const double alfa,
+              const double beta,
               const int integr);
 
 void xerror(const std::string messg, 

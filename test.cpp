@@ -21,6 +21,7 @@ void test_dqawc();
 void test_dqawf();
 void test_dqawo();
 void test_dqaws();
+void test_dqng();
 
 // *********************************************** //
 // main
@@ -28,14 +29,15 @@ void test_dqaws();
 
 int main()
 {
-    // test_dqag();
-    // test_dqagi();
-    // test_dqagp();
-    // test_dqags();
-    // test_dqawc();
+    test_dqag();
+    test_dqagi();
+    test_dqagp();
+    test_dqags();
+    test_dqawc();
     test_dqawf();
     test_dqawo();
     test_dqaws();
+    test_dqng();
     return 0;
 }
 
@@ -364,6 +366,34 @@ void test_dqaws()
         abserr, neval, ier, limit, lenw, last, iwork, work, nullptr);
 
     check_result("dqaws", result, answer, neval);
+
+    return;
+}
+
+// *********************************************** //
+// test_dqng
+// *********************************************** //
+
+double func_dqng(double x, void *data)
+{
+    return std::exp(x) / (x*x + 1.0);
+}
+
+void test_dqng()
+{
+    const double a = 0.0;
+    const double b = 1.0;
+    const double answer = 1.27072413983362022013785374440150;
+
+    const double epsabs = EPSABS;
+    const double epsrel = EPSREL;
+
+    double abserr, result;
+    int ier, neval;
+
+    quadpack_cpp::dqng(func_dqng, a, b, epsabs, epsrel, result, abserr, neval, ier, nullptr);
+
+    check_result("dqng", result, answer, neval);
 
     return;
 }

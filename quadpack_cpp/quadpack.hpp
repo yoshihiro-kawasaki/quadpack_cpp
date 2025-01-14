@@ -481,6 +481,17 @@ void dqmomo(const double alfa,
             double *rh,
             const int integr);
 
+void dqng(QUADPACK_CPP_FUNCTION f,
+          const double a,
+          const double b,
+          const double epsabs,
+          const double epsrel,
+          double &result,
+          double &abserr,
+          int &neval,
+          int &ier,
+          void *data);
+
 void dqpsrt(const int limit,
             const int last,
             int &maxerr,

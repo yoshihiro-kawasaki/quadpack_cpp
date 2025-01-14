@@ -134,7 +134,7 @@ void dqag(QUADPACK_CPP_FUNCTION f,
     l3 = limit + l2;
     //
     dqage(f, a, b, epsabs, epsrel, key, limit, result, abserr, neval, ier,
-        &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), iwork, last, data);
+        &ARRAYF(work, 1) ,&ARRAYF(work, l1) ,&ARRAYF(work, l2) ,&ARRAYF(work, l3), iwork, last, data);
     //
     // call error handler if necessary.
     //
@@ -366,7 +366,7 @@ void dqagi(QUADPACK_CPP_FUNCTION f,
     l3 = limit + l2;
     //
     dqagie(f, bound, inf, epsabs, epsrel, limit, result, abserr, neval, ier,
-        &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), iwork, last, data);
+        &ARRAYF(work, 1) ,&ARRAYF(work, l1) ,&ARRAYF(work, l2) ,&ARRAYF(work, l3), iwork, last, data);
     //
     // call error handler if necessary.
     //
@@ -699,7 +699,7 @@ void dqagp(QUADPACK_CPP_FUNCTION f,
     l4    = limit + l3;
     //
     dqagpe(f , a, b, npts2, points, epsabs, epsrel, limit, result, abserr, 
-        neval, ier, &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), &ARRAYF(work, l4),
+        neval, ier, &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3) ,&ARRAYF(work, l4),
         &ARRAYF(iwork, 1), &ARRAYF(iwork, l1), &ARRAYF(iwork, l2), last, data);
     //
     // call error handler if necessary.
@@ -1428,7 +1428,7 @@ void dqawc(QUADPACK_CPP_FUNCTION f,
     l2 = limit + l1;
     l3 = limit + l2;
     dqawce(f, a, b, c, epsabs, epsrel, limit, result, abserr, neval, ier,
-        &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), iwork, last, data);
+        &ARRAYF(work,1 ), &ARRAYF(work,l1), &ARRAYF(work, l2), &ARRAYF(work, l3), iwork, last, data);
     //
     // call error handler if necessary.
     //
@@ -1657,8 +1657,8 @@ void dqawf(QUADPACK_CPP_FUNCTION f,
     l6    = limit  + l5;
     ll2   = limit  + l1;
     dqawfe(f, a, omega, integr, epsabs, limlst, limit, maxp1, result, abserr, neval, ier,
-        &ARRAYF(work,  1), &ARRAYF(work, l1), &ARRAYF(iwork, 1), lst, &ARRAYF(work, l2),
-        &ARRAYF(work, l3), &ARRAYF(work, l4), &ARRAYF(work, l5), &ARRAYF(iwork, l1), &ARRAYF(iwork, ll2), &ARRAYF(work, l6),
+        &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(iwork, 1), lst, &ARRAYF(work, l2),
+        &ARRAYF(work,l3), &ARRAYF(work, l4) ,&ARRAYF(work, l5), &ARRAYF(iwork, l1), &ARRAYF(iwork, ll2), &ARRAYF(work, l6),
         data);
     //
     // call error handler if necessary
@@ -1874,8 +1874,8 @@ void dqawo(QUADPACK_CPP_FUNCTION f,
     l3    = limit + l2;
     l4    = limit + l3;
     dqawoe(f, a, b, omega, integr, epsabs, epsrel, limit, 1 ,maxp1, result, abserr, neval, ier, last,
-        &ARRAYF(work, 1), &ARRAYF(work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), 
-        &ARRAYF(iwork, 1),&ARRAYF(iwork, l1), momcom, &ARRAYF(work, l4), data);
+        &ARRAYF( work, 1), &ARRAYF( work, l1), &ARRAYF(work, l2), &ARRAYF(work, l3), 
+        &ARRAYF(iwork, 1), &ARRAYF(iwork, l1), momcom, &ARRAYF(work, l4), data);
     //
     // call error handler if necessary
     //
@@ -2359,23 +2359,22 @@ void dqawse(QUADPACK_CPP_FUNCTION f,
     ARRAYF(elist, 1) = error2;
     ARRAYF(elist, 2) = error1;
     label_20:
-    ARRAYF(iord, 1) = 1;
-    ARRAYF(iord, 2) = 2;
+    ARRAYF(iord,  1) = 1;
+    ARRAYF(iord,  2) = 2;
     if (limit == 2) ier = 1;
     if (abserr <= errbnd || ier == 1) goto label_999;
-    errmax          = ARRAYF(elist, 1);
-    maxerr          = 1;
-    nrmax           = 1;
-    area            = result;
-    errsum          = abserr;
-    iroff1          = 0;
-    iroff2          = 0;
+    errmax           = ARRAYF(elist, 1);
+    maxerr           = 1;
+    nrmax            = 1;
+    area             = result;
+    errsum           = abserr;
+    iroff1           = 0;
+    iroff2           = 0;
     //
     // main for-loop
     // -------------
     //
     for (last = 3; last <= limit; ++last) {
-        std::cout << "begin : last = " << last  << ", ok" << std::endl;
         //
         // bisect the subinterval with largest error estimate.
         //
@@ -2383,26 +2382,24 @@ void dqawse(QUADPACK_CPP_FUNCTION f,
         b1 = 0.5 * (ARRAYF(alist, maxerr) + ARRAYF(blist, maxerr));
         a2 = b1;
         b2 = ARRAYF(blist, maxerr);
-        std::cout << "last = " << last << ", ok" << std::endl;
         dqc25s(f, a, b, a1, b1, alfa, beta, ri, rj, rg, rh, area1, error1, resas1, integr, nev, data);
         neval = neval + nev;
         dqc25s(f, a, b, a2, b2, alfa, beta, ri, rj, rg, rh, area2, error2, resas2, integr, nev, data);
         neval = neval + nev;
-        std::cout << "dqc25s : last = " << last  << ", ok" << std::endl;
         //
         // improve previous approximations integral and error
         // and test for accuracy.
         //
-        area12 = area1 + area2;
+        area12 = area1  + area2;
         erro12 = error1 + error2;
         errsum = errsum + erro12 - errmax;
-        area   = area + area12 - ARRAYF(rlist, maxerr);
+        area   = area   + area12 - ARRAYF(rlist, maxerr);
         if (a == a1 || b == b2) goto label_30;
         if (resas1 == error1 || resas2 == error2) goto label_30;
         //
         // test for roundoff error.
         //
-        if (std::abs(ARRAYF(rlist, maxerr) - area12) < 1.0e-5*std::abs(area12) && erro12 >= 0.99*errmax) iroff1 += 1;
+        if (std::abs(ARRAYF(rlist, maxerr) - area12) < 1.0e-5 * std::abs(area12) && erro12 >= 0.99 * errmax) iroff1 += 1;
         if (last > 10 && erro12 > errmax) iroff2 += 1;
         label_30:
         ARRAYF(rlist, maxerr) = area1;
@@ -2425,12 +2422,11 @@ void dqawse(QUADPACK_CPP_FUNCTION f,
         // set error flag in the case of bad integrand behaviour
         // at interior points of integration range.
         //
-        if(std::max(std::abs(a1), std::abs(b2)) <= (1.0 + 1.0e2*epmach)*(std::abs(a2) + 1.0e3*uflow)) ier = 3;
+        if(std::max(std::abs(a1), std::abs(b2)) <= (1.0 + 1.0e2*epmach) * (std::abs(a2) + 1.0e3*uflow)) ier = 3;
         //
         // append the newly-created intervals to the list.
         //
         label_35:
-        std::cout << "35 : last = " << last  << ", ok" << std::endl;
         if (error2 > error1) goto label_40;
         ARRAYF(alist,   last) = a2;
         ARRAYF(blist, maxerr) = b1;
@@ -2461,9 +2457,7 @@ void dqawse(QUADPACK_CPP_FUNCTION f,
     // ---------------------
     //
     label_70:
-    std::cout << "70 : last = " << last  << ", ok" << std::endl;
     result = 0.0;
-    std::cout << "last = " << last  << ", ok" << std::endl;
     for (k = 1; k <= last; ++k) {
         result += ARRAYF(rlist, k);
     }
@@ -2809,7 +2803,7 @@ void dqc25s(QUADPACK_CPP_FUNCTION f,
     double dc, factor, fix, resabs, u;
     int i, isym;
     double x[11];
-    for (k = 1; k <= 11; ++k) ARRAYF(x, i) = std::cos(k*M_PI/24.0);
+    for (k = 1; k <= 11; ++k) ARRAYF(x, k) = std::cos(k*M_PI/24.0);
     // first executable statement  dqc25s
     nev = 25;
     if (bl == a && (alfa != 0.0 || integr == 2 || integr == 4)) goto label_10;
@@ -2818,8 +2812,7 @@ void dqc25s(QUADPACK_CPP_FUNCTION f,
     // if a.gt.bl and b.lt.br, apply the 15-point gauss-kronrod
     // scheme.
     //
-    dqk15w(f, dqwgts, a, b, alfa, beta, integr, bl, br, 
-        result, abserr, resabs, resasc, data);
+    dqk15w(f, dqwgts, a, b, alfa, beta, integr, bl, br, result, abserr, resabs, resasc, data);
     nev = 15;
     goto label_270;
     //
@@ -2836,7 +2829,7 @@ void dqc25s(QUADPACK_CPP_FUNCTION f,
     centr            = 0.5 * (br + bl);
     fix              = b - centr;
     ARRAYF(fval,  1) = 0.5 * f(hlgth + centr, data) * std::pow(fix - hlgth, beta);
-    ARRAYF(fval, 13) = f(centr, data) * std::pow(fix, beta);
+    ARRAYF(fval, 13) =       f(centr,         data) * std::pow(fix,         beta);
     ARRAYF(fval, 25) = 0.5 * f(centr - hlgth, data) * std::pow(fix + hlgth, beta);
     for (i = 2; i <= 12; ++i) {
         u                  = hlgth * ARRAYF(x, i-1);
@@ -2856,6 +2849,9 @@ void dqc25s(QUADPACK_CPP_FUNCTION f,
     //
     for (i = 1; i <= 13; ++i) {
         res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(ri, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(ri, i);
+    }
+    for (i = 14; i <= 25; ++i) {
         res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(ri, i);
     }
     if (integr == 1) goto label_130;
@@ -2935,7 +2931,7 @@ void dqc25s(QUADPACK_CPP_FUNCTION f,
     centr            = 0.5 * (br + bl);
     fix              = centr - a;
     ARRAYF(fval,  1) = 0.5 * f(hlgth + centr, data) * std::pow(fix + hlgth, alfa);
-    ARRAYF(fval, 13) = f(centr, data) * std::pow(fix, alfa);
+    ARRAYF(fval, 13) =       f(centr,         data) * std::pow(fix,         alfa);
     ARRAYF(fval, 25) = 0.5 * f(centr - hlgth, data) * std::pow(fix - hlgth, alfa);
     for (i = 2; i <= 12; ++i) {
         u                  = hlgth * ARRAYF(x, i-1);
@@ -2953,7 +2949,7 @@ void dqc25s(QUADPACK_CPP_FUNCTION f,
     // integr = 1  (or 3)
     //
     dqcheb(x, fval, cheb12, cheb24);
-    for (i = 14; i <= 25; ++i) {
+    for (i = 1; i <= 13; ++i) {
         res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(rj, i);
         res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rj, i);
     }
@@ -3014,6 +3010,9 @@ void dqc25s(QUADPACK_CPP_FUNCTION f,
     //
     for (i = 1; i <= 13; ++i) {
         res12 = res12 + ARRAYF(cheb12, i) * ARRAYF(rh, i);
+        res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rh, i);
+    }
+    for (i = 14; i <= 25; ++i) {
         res24 = res24 + ARRAYF(cheb24, i) * ARRAYF(rh, i);
     }
     label_260:
@@ -4446,6 +4445,322 @@ void dqmomo(const double alfa,
         ARRAYF(rj, i) = -ARRAYF(rj, i);
     }
     label_90:
+    return;
+}
+
+void dqng(QUADPACK_CPP_FUNCTION f,
+          const double a,
+          const double b,
+          const double epsabs,
+          const double epsrel,
+          double &result,
+          double &abserr,
+          int &neval,
+          int &ier,
+          void *data)
+{
+    double dhlgth, fval1, fval2, fv1[5], fv2[5], fv3[5], fv4[5], reskh;
+    int ipx, k, l;
+    double centr;
+    double hlgth;
+    double fcentr;
+    double absc;
+    double fval;
+    double savfun[21];
+    double res10;
+    double res21;
+    double res43;
+    double res87;
+    double resabs;
+    double resasc;
+    double epmach, uflow;
+    std::string messg;
+    //
+    // the following data statements contain the
+    // abscissae and weights of the integration rules used.
+    //
+    // x1      abscissae common to the 10-, 21-, 43- and 87-
+    //         point rule
+    // x2      abscissae common to the 21-, 43- and 87-point rule
+    // x3      abscissae common to the 43- and 87-point rule
+    // x4      abscissae of the 87-point rule
+    // w10     weights of the 10-point formula
+    // w21a    weights of the 21-point formula for abscissae x1
+    // w21b    weights of the 21-point formula for abscissae x2
+    // w43a    weights of the 43-point formula for abscissae x1, x3
+    // w43b    weights of the 43-point formula for abscissae x3
+    // w87a    weights of the 87-point formula for abscissae x1,
+    //         x2, x3
+    // w87b    weights of the 87-point formula for abscissae x4
+    //
+    //
+    // gauss-kronrod-patterson quadrature coefficients for use in
+    // quadpack routine qng.  these coefficients were calculated with
+    // 101 decimal digit arithmetic by l. w. fullerton, bell labs, nov 1981.
+    //
+    const double x1[5] = {
+        9.73906528517171720077964012084452053428e-1,
+        8.65063366688984510732096688423493048528e-1,
+        6.79409568299024406234327365114873575769e-1,
+        4.33395394129247190799265943165784162200e-1,
+        1.48874338981631210884826001129719984618e-1
+    };
+    const double w10[5] = {
+        6.66713443086881375935688098933317928579e-2,
+        1.49451349150580593145776339657697332403e-1,
+        2.19086362515982043995534934228163192459e-1,
+        2.69266719309996355091226921569469352860e-1,
+        2.95524224714752870173892994651338329421e-1
+    };
+    const double x2[5] = {
+        9.95657163025808080735527280689002847921e-1,
+        9.30157491355708226001207180059508346225e-1,
+        7.80817726586416897063717578345042377163e-1,
+        5.62757134668604683339000099272694140843e-1,
+        2.94392862701460198131126603103865566163e-1
+    };
+    const double w21a[5] = {
+        3.25581623079647274788189724593897606174e-2,
+        7.50396748109199527670431409161900093952e-2,
+        1.09387158802297641899210590325804960272e-1,
+        1.34709217311473325928054001771706832761e-1,
+        1.47739104901338491374841515972068045524e-1
+    };
+    const double w21b[6] = {
+        1.16946388673718742780643960621920483962e-2,
+        5.47558965743519960313813002445801763737e-2,
+        9.31254545836976055350654650833663443900e-2,
+        1.23491976262065851077958109831074159512e-1,
+        1.42775938577060080797094273138717060886e-1,
+        1.49445554002916905664936468389821203745e-1
+    };
+    const double x3[11] = {
+        0.999333360901932081394099323919911,
+        0.987433402908088869795961478381209,
+        0.954807934814266299257919200290473,
+        0.900148695748328293625099494069092,
+        0.825198314983114150847066732588520,
+        0.732148388989304982612354848755461,
+        0.622847970537725238641159120344323,
+        0.499479574071056499952214885499755,
+        0.364901661346580768043989548502644,
+        0.222254919776601296498260928066212,
+        0.074650617461383322043914435796506
+    };
+    const double w43a[10] = {
+        0.016296734289666564924281974617663,
+        0.037522876120869501461613795898115,
+        0.054694902058255442147212685465005,
+        0.067355414609478086075553166302174,
+        0.073870199632393953432140695251367,
+        0.005768556059769796184184327908655,
+        0.027371890593248842081276069289151,
+        0.046560826910428830743339154433824,
+        0.061744995201442564496240336030883,
+        0.071387267268693397768559114425516
+    };
+    const double w43b[12] = {
+        0.001844477640212414100389106552965,
+        0.010798689585891651740465406741293,
+        0.021895363867795428102523123075149,
+        0.032597463975345689443882222526137,
+        0.042163137935191811847627924327955,
+        0.050741939600184577780189020092084,
+        0.058379395542619248375475369330206,
+        0.064746404951445885544689259517511,
+        0.069566197912356484528633315038405,
+        0.072824441471833208150939535192842,
+        0.074507751014175118273571813842889,
+        0.074722147517403005594425168280423
+    };
+    const double x4[22] = {
+        0.999902977262729234490529830591582,
+        0.997989895986678745427496322365960,
+        0.992175497860687222808523352251425,
+        0.981358163572712773571916941623894,
+        0.965057623858384619128284110607926,
+        0.943167613133670596816416634507426,
+        0.915806414685507209591826430720050,
+        0.883221657771316501372117548744163,
+        0.845710748462415666605902011504855,
+        0.803557658035230982788739474980964,
+        0.757005730685495558328942793432020,
+        0.706273209787321819824094274740840,
+        0.651589466501177922534422205016736,
+        0.593223374057961088875273770349144,
+        0.531493605970831932285268948562671,
+        0.466763623042022844871966781659270,
+        0.399424847859218804732101665817923,
+        0.329874877106188288265053371824597,
+        0.258503559202161551802280975429025,
+        0.185695396568346652015917141167606,
+        0.111842213179907468172398359241362,
+        0.037352123394619870814998165437704
+    };
+    const double w87a[21] = {
+        0.008148377384149172900002878448190,
+        0.018761438201562822243935059003794,
+        0.027347451050052286161582829741283,
+        0.033677707311637930046581056957588,
+        0.036935099820427907614589586742499,
+        0.002884872430211530501334156248695,
+        0.013685946022712701888950035273128,
+        0.023280413502888311123409291030404,
+        0.030872497611713358675466394126442,
+        0.035693633639418770719351355457044,
+        0.000915283345202241360843392549948,
+        0.005399280219300471367738743391053,
+        0.010947679601118931134327826856808,
+        0.016298731696787335262665703223280,
+        0.021081568889203835112433060188190,
+        0.025370969769253827243467999831710,
+        0.029189697756475752501446154084920,
+        0.032373202467202789685788194889595,
+        0.034783098950365142750781997949596,
+        0.036412220731351787562801163687577,
+        0.037253875503047708539592001191226
+    };
+    const double w87b[23] = {
+        0.000274145563762072350016527092881,
+        0.001807124155057942948341311753254,
+        0.004096869282759164864458070683480,
+        0.006758290051847378699816577897424,
+        0.009549957672201646536053581325377,
+        0.012329447652244853694626639963780,
+        0.015010447346388952376697286041943,
+        0.017548967986243191099665352925900,
+        0.019938037786440888202278192730714,
+        0.022194935961012286796332102959499,
+        0.024339147126000805470360647041454,
+        0.026374505414839207241503786552615,
+        0.028286910788771200659968002987960,
+        0.030052581128092695322521110347341,
+        0.031646751371439929404586051078883,
+        0.033050413419978503290785944862689,
+        0.034255099704226061787082821046821,
+        0.035262412660156681033782717998428,
+        0.036076989622888701185500318003895,
+        0.036698604498456094498018047441094,
+        0.037120549269832576114119958413599,
+        0.037334228751935040321235449094698,
+        0.037361073762679023410321241766599
+    };
+    // first executable statement  dqng
+    epmach = ARRAYF(d1mach, 4);
+    uflow  = ARRAYF(d1mach, 1);
+    //
+    // test on validity of parameters
+    // ------------------------------
+    //
+    result = 0.0;
+    abserr = 0.0;
+    neval  = 0;
+    ier    = 6;
+    if (epsabs <= 0.0 && epsrel < std::max(50.0*epmach, 5.0e-29)) goto label_80;
+    hlgth  = 0.5 * (b - a);
+    dhlgth = std::abs(hlgth);
+    centr  = 0.5 * (b + a);
+    fcentr = f(centr, data);
+    neval  = 21;
+    ier    = 1;
+    //
+    // compute the integral using the 10- and 21-point formula.
+    //
+    for (l = 1; l <= 3; ++l) {
+        if (l == 1) goto label_5;
+        if (l == 2) goto label_25;
+        if (l == 3) goto label_45;
+        label_5:
+        res10  = 0.0;
+        res21  = ARRAYF(w21b, 6) * fcentr;
+        resabs = ARRAYF(w21b, 6) * std::abs(fcentr);
+        for (k = 1; k <= 5; ++k) {
+            absc = hlgth * ARRAYF(x1, k);
+            fval1             = f(centr + absc, data);
+            fval2             = f(centr - absc, data);
+            fval              = fval1 + fval2;
+            res10             = res10 + ARRAYF( w10, k) * fval;
+            res21             = res21 + ARRAYF(w21a, k) * fval;
+            resabs            = resabs + ARRAYF(w21a, k) * (std::abs(fval1) + std::abs(fval2));
+            ARRAYF(savfun, k) = fval;
+            ARRAYF(   fv1, k) = fval1;
+            ARRAYF(   fv2, k) = fval2;
+        }
+        ipx = 5;
+        for (k = 1; k <= 5; ++k) {
+            ipx                 = ipx + 1;
+            absc                = hlgth * ARRAYF(x2, k);
+            fval1               = f(centr + absc, data);
+            fval2               = f(centr - absc, data);
+            fval                = fval1 + fval2;
+            res21               = res21 + ARRAYF(w21b, k) * fval;
+            resabs              = resabs + ARRAYF(w21b, k) * (std::abs(fval1) + std::abs(fval2));
+            ARRAYF(savfun, ipx) = fval;
+            ARRAYF(   fv3,   k) = fval1;
+            ARRAYF(   fv4,   k) = fval2;
+        }
+        //
+        // test for convergence.
+        //
+        result = res21 * hlgth;
+        resabs = resabs * dhlgth;
+        reskh  = 0.5 * res21;
+        resasc = ARRAYF(w21b, 6) * std::abs(fcentr - reskh);
+        for (k = 1; k <= 5; ++k) {
+            resasc = resasc + ARRAYF(w21a, k) * (std::abs(ARRAYF(fv1, k) - reskh) + std::abs(ARRAYF(fv2, k) - reskh))
+                            + ARRAYF(w21b, k) * (std::abs(ARRAYF(fv3, k) - reskh) + std::abs(ARRAYF(fv4, k) - reskh));
+        }
+        abserr = std::abs((res21 - res10) * hlgth);
+        resasc = resasc * dhlgth;
+        goto label_65;
+        //
+        // compute the integral using the 43-point formula.
+        //
+        label_25:
+        res43 = ARRAYF(w43b, 12) * fcentr;
+        neval = 43;
+        for (k = 1; k <= 10; ++k) {
+            res43 = res43 + ARRAYF(savfun, k) * ARRAYF(w43a, k);
+        }
+        for (k = 1; k <= 11; ++k) {
+            ipx                 = ipx + 1;
+            absc                = hlgth * ARRAYF(x3, k);
+            fval                = f(absc + centr, data) + f(centr - absc, data);
+            res43               = res43 + fval * ARRAYF(w43b, k);
+            ARRAYF(savfun, ipx) = fval;
+        }
+        //
+        // test for convergence.
+        //
+        result = res43 * hlgth;
+        abserr = std::abs((res43 - res21) * hlgth);
+        goto label_65;
+        //
+        // compute the integral using the 87-point formula.
+        //
+        label_45:
+        res87 = ARRAYF(w87b, 23) * fcentr;
+        neval = 87;
+        for (k = 1; k <= 21; ++k) {
+            res87 = res87 + ARRAYF(savfun, k) * ARRAYF(w87a, k);
+        }
+        for (k = 1; k <= 22; ++k) {
+            absc  = hlgth * ARRAYF(x4, k);
+            res87 = res87 + ARRAYF(w87b, k) * (f(absc + centr, data) + f(centr - absc, data));
+        }
+        result = res87 * hlgth;
+        abserr = std::abs((res87 - res43) * hlgth);
+        label_65:
+        if (resasc != 0.0 && abserr != 0.0) abserr = resasc * std::min(1.0, std::pow(2.0e2*abserr/resasc, 1.5));
+        if (resabs > uflow/(50.0*epmach)) abserr = std::max(epmach*50.0*resabs, abserr);
+        if (abserr <= std::max(epsabs, epsrel*std::abs(result))) ier = 0;
+        // jump out of for-loop
+        if (ier == 0) goto label_999;
+    }
+    label_80:
+    messg = "abnormal return from dqng";
+    xerror(messg, ier, 0);
+    label_999:
     return;
 }
 

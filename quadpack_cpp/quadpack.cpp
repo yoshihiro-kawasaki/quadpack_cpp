@@ -1,12 +1,33 @@
+/**
+ * @file quadpack.cpp
+ * @brief 
+ * @author yoshihiro kawasaki
+ * @date 2025/01/14
+ * @details 
+ * @note
+ *      https://www.netlib.org/quadpack/
+ *      https://github.com/jacobwilliams/quadpack
+*/
+
 #include "quadpack.hpp"
 
 namespace quadpack_cpp
 {
 
-// C++ array index --> Fortran array index
-#define ARRAYF(a, i)         (a[(i)-1])
-// C++ array index --> Fortran 2d-array index
+/**
+* @def ARRAYF
+* @brief C++ array index --> Fortran array index
+* @details
+*/
+#define ARRAYF(a, i) (a[(i)-1])
+
+/**
+* @def MATF
+* @brief C++ array index --> Fortran 2d-array index
+* @details
+*/
 #define MATF(a, cols,  i, j) (a[((i) - 1) * (cols) + ((j) - 1)])
+
 
 namespace {
     const double d1mach[] = {
@@ -16,10 +37,11 @@ namespace {
         std::numeric_limits<double>::epsilon(),
         std::log10(static_cast<double>(std::numeric_limits<double>::radix))
     };
-    const int limexp = 50;
 }
 
-
+/**
+ * @fn void dgtsl
+*/
 void dgtsl(const int n, 
            double *c,
            double *d,
@@ -29,10 +51,10 @@ void dgtsl(const int n,
 {
     int k, kb, kp1, nm1, nm2;
     double t;
-
+    // begin block permitting ...exits to 100
     info = 0;
     ARRAYF(c, 1) = ARRAYF(d, 1);
-    nm1  = n - 1;
+    nm1          = n - 1;
     if (nm1 < 1) goto label_40;
     ARRAYF(d, 1) = ARRAYF(e, 1);
     ARRAYF(e, 1) = 0.0;
@@ -98,6 +120,9 @@ void dgtsl(const int n,
     return;
 }
 
+/**
+ * @fn void dgag
+*/
 void dqag(QUADPACK_CPP_FUNCTION f, 
           const double a, 
           const double b, 
@@ -1142,7 +1167,7 @@ void dqagse(QUADPACK_CPP_FUNCTION f,
     double erro12;
     double area1, a1, b1, defab1, error1;
     double area2, a2, b2, defab2, error2;
-    double rlist2[limexp + 2];
+    double rlist2[52];
     int maxerr;
     int nres;
     int numrl2;
@@ -1729,7 +1754,7 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
     ARRAYF(rslst,  1) = result;
     ARRAYF(erlst,  1) = abserr;
     ARRAYF(ierlst, 1) = ier;
-    lst = 1;
+    lst               = 1;
     goto label_999;
     //
     // initializations
@@ -1738,7 +1763,7 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
     label_10:
     l      = std::abs(omega);
     dl     = 2*l + 1;
-    cycle  = dl*M_PI/std::abs(omega);
+    cycle  = dl * M_PI / std::abs(omega);
     ier    = 0;
     ktmin  = 0;
     neval  = 0;
@@ -1764,22 +1789,22 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
         // integrate over current subinterval.
         //
         dla  = lst;
-        epsa = eps*fact;
+        epsa = eps * fact;
         dqawoe(f, c1, c2, omega, integr, epsa, 0.0, limit, lst, maxp1,
             ARRAYF(rslst, lst), ARRAYF(erlst, lst), nev, ARRAYF(ierlst, lst), 
             last, alist, blist, rlist, elist, iord, nnlog, momcom, chebmo, data);
         neval  += nev;
-        fact    = fact*p;
+        fact   *= p;
         errsum += ARRAYF(erlst, lst);
-        drl     = 50.0*std::abs(ARRAYF(rslst, lst));
+        drl     = 50.0 * std::abs(ARRAYF(rslst, lst));
         //
         // test on accuracy with partial sum
         //
         if (errsum + drl <= epsabs && lst >= 6) goto label_80;
         correc = std::max(correc, ARRAYF(erlst, lst));
-        if (ARRAYF(ierlst, lst) != 0) eps = std::max(ep, correc*p1);
+        if (ARRAYF(ierlst, lst) != 0) eps = std::max(ep, correc * p1);
         if (ARRAYF(ierlst, lst) != 0) ier = 7;
-        if (ier == 7 && errsum + drl <= correc*10.0 && lst > 5) goto label_80;
+        if (ier == 7 && errsum + drl <= 10.0*correc && lst > 5) goto label_80;
         numrl2 += 1;
         if (lst > 1) goto label_20;
         ARRAYF(psum, 1) = ARRAYF(rslst, 1);
@@ -1813,15 +1838,16 @@ void dqawfe(QUADPACK_CPP_FUNCTION f,
         label_30:
         if (ier != 0 && ier != 7) goto label_60;
         label_40:
-        ll = numrl2;
-        c1 = c2;
-        c2 = c2 + cycle;
+        ll  = numrl2;
+        c1  = c2;
+        c2 += cycle;
     }
     //
     // set final result and error estimate
     // -----------------------------------
     //
     label_60:
+    abserr = abserr + 10.0 * correc;
     if (ier == 0) goto label_999;
     if (result != 0.0 && ARRAYF(psum, numrl2) != 0.0) goto label_70;
     if (abserr > errsum) goto label_80;
@@ -1997,7 +2023,7 @@ void dqawoe(QUADPACK_CPP_FUNCTION f,
     iroff2 = 0;
     iroff3 = 0;
     ktmin  = 0;
-    small  = std::abs(b - a)*0.75;
+    small  = 0.75 * std::abs(b - a);
     nres   = 0;
     numrl2 = 0;
     extall = false;
@@ -3139,7 +3165,7 @@ void dqelg(int &n,
            err1, err2, err3, e0, e1, e1abs,
            e2, e3, res, ss, tol1, tol2, tol3;
     double epmach, oflow;
-    int i, ib, ib2, ie, indx, k1, k2, k3, num;
+    int i, ib, ib2, ie, indx, k1, k2, k3, num, limexp;
     int newelm;
     double error;
 
@@ -3150,7 +3176,7 @@ void dqelg(int &n,
     abserr = oflow;
     result = ARRAYF(epstab, n);
     if(n < 3) goto label_100;
-    // limexp = 50
+    limexp = 50;
     ARRAYF(epstab, n+2) = ARRAYF(epstab, n);
     newelm = (n - 1) / 2;
     ARRAYF(epstab, n) = oflow;

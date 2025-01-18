@@ -5,6 +5,7 @@
  * @date 2025/01/14
  * @details 
  * @note
+ * @ref
  *      https://www.netlib.org/quadpack/
  *      https://github.com/jacobwilliams/quadpack
 */
@@ -67,7 +68,7 @@ typedef double (*QUADPACK_CPP_WEIGHT_FUNCTION)(const double x,
  *      linpack. this version dated 08/14/78 .
  *      jack dongarra, argonne national laboratory.
 */
-void dgtsl(const int n, 
+void dgtsl(const int n,
            double *c,
            double *d,
            double *e,

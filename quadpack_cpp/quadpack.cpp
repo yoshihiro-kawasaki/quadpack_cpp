@@ -594,7 +594,7 @@ void dqagie(QUADPACK_CPP_FUNCTION f,
         // test whether the interval to be bisected next is the
         // smallest interval.
         // 
-        if(std::abs(ARRAYF(blist, maxerr) - ARRAYF(alist, maxerr)) > small) goto label_90;
+        if (std::abs(ARRAYF(blist, maxerr) - ARRAYF(alist, maxerr)) > small) goto label_90;
         extrap = true;
         nrmax  = 2;
         label_40:
@@ -961,7 +961,7 @@ void dqagpe(QUADPACK_CPP_FUNCTION f,
         // set error flag in the case of bad integrand behaviour
         // at a point of the integration range
         //
-        if (std::max(std::abs(a1), std::abs(b2)) <= (1.0 + 1.0e2*epmach)*(std::abs(a2) + 1.03*uflow)) ier = 4;
+        if (std::max(std::abs(a1), std::abs(b2)) <= (1.0 + 1.0e2*epmach)*(std::abs(a2) + 1.0e3*uflow)) ier = 4;
         //
         // append the newly-created intervals to the list.
         //

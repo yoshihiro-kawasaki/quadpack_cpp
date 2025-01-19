@@ -193,13 +193,6 @@ double func_dqags(double x, void *data)
     }
 }
 
-// double func_dqags(double x, void *data) 
-// {
-//     // double f = 1.4;
-//     double f = *(double*)(data);
-//     return 1.0 / std::sqrt(std::log(x)/f + 1.0/x - 1.0);
-// }
-
 void test_dqags()
 {
     const double a = 0.0;
@@ -207,10 +200,6 @@ void test_dqags()
     const int limit = 100;
     const int lenw = limit*4;
     const double answer = 2.0;
-    double f = 1.4;
-    // const double answer = 2.567172178745525; 
-    // double f = 2.0;
-    // const double answer = 2.080463121721123;
 
     double abserr, result, work[lenw];
     int ier, iwork[limit], last, neval;
@@ -219,7 +208,7 @@ void test_dqags()
     const double epsrel = EPSREL;
 
     quadpack_cpp::dqags(func_dqags, a, b, epsabs, epsrel, result, abserr, neval, 
-        ier, limit, lenw, last, iwork, work, &f);
+        ier, limit, lenw, last, iwork, work, nullptr);
 
     check_result("dqags", result, answer, neval);
 
